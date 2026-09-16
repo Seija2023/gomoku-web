@@ -2,537 +2,66 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4efe6" />
   <title>五子棋 Gomoku</title>
   <style>
-:root {
-  --bg: #f4efe6;
-  --panel: #fffaf2;
-  --ink: #1f1f1f;
-  --muted: #766f66;
-  --wood: #d7a65d;
-  --wood-dark: #8e6535;
-  --line: rgba(50, 34, 17, 0.56);
-  --shadow: 0 18px 50px rgba(48, 35, 20, 0.14);
-}
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 20% 15%, rgba(255,255,255,.9), transparent 30%),
-    linear-gradient(135deg, #efe7da 0%, #f8f2e9 50%, #eee4d6 100%);
-}
-
-button {
-  font: inherit;
-  border: 0;
-  cursor: pointer;
-}
-
-.app {
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 36px 0 48px;
-}
-
-.hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  align-items: end;
-  margin-bottom: 26px;
-}
-
-.eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: .18em;
-  font-weight: 800;
-  color: var(--muted);
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(40px, 7vw, 72px);
-  letter-spacing: -0.05em;
-  line-height: .95;
-}
-
-.subtitle {
-  margin: 12px 0 0;
-  color: var(--muted);
-}
-
-.status-card {
-  min-width: 170px;
-  padding: 15px 18px;
-  border: 1px solid rgba(55, 39, 21, .12);
-  background: rgba(255, 250, 242, .78);
-  backdrop-filter: blur(10px);
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(48, 35, 20, .08);
-}
-
-.status-label {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 7px;
-}
-
-.turn-indicator {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.stone {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.stone.black {
-  background: radial-gradient(circle at 35% 30%, #555, #171717 55%, #050505);
-  box-shadow: inset -3px -4px 8px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.2);
-}
-
-.stone.white {
-  background: radial-gradient(circle at 35% 30%, #fff, #e5e2dd 70%, #beb8af);
-  box-shadow: inset -2px -3px 7px rgba(120,110,100,.25), 0 2px 4px rgba(0,0,0,.16);
-  border: 1px solid #cfc8bd;
-}
-
-.game-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 270px;
-  gap: 24px;
-  align-items: start;
-}
-
-.board-wrap {
-  border-radius: 24px;
-  padding: 22px;
-  background: linear-gradient(145deg, #e1b770, #c99043);
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(94, 58, 20, .25);
-}
-
-.board {
-  --size: 15;
-  position: relative;
-  aspect-ratio: 1;
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(var(--size), 1fr);
-  grid-template-rows: repeat(var(--size), 1fr);
-  background:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px),
-    linear-gradient(145deg, #deb16b, #c99043);
-  background-size:
-    calc(100% / 14) calc(100% / 14),
-    calc(100% / 14) calc(100% / 14),
-    100% 100%;
-  background-position: 0 0, 0 0, 0 0;
-  border: 1px solid rgba(63, 38, 13, .4);
-  overflow: visible;
-}
-
-.cell {
-  position: relative;
-  transform: translate(-50%, -50%);
-  width: calc(100% * 15 / 14);
-  height: calc(100% * 15 / 14);
-  display: grid;
-  place-items: center;
-}
-
-.cell:hover::after {
-  content: "";
-  width: 22%;
-  height: 22%;
-  border-radius: 50%;
-  background: rgba(40, 30, 20, .18);
-}
-
-.piece {
-  width: 72%;
-  height: 72%;
-  border-radius: 50%;
-  position: relative;
-  z-index: 2;
-  animation: place .16s ease-out;
-}
-
-.piece.black {
-  background: radial-gradient(circle at 34% 28%, #666 0%, #222 42%, #050505 79%);
-  box-shadow: 0 4px 7px rgba(0,0,0,.33), inset -3px -4px 7px rgba(0,0,0,.42);
-}
-
-.piece.white {
-  background: radial-gradient(circle at 34% 28%, #fff 0%, #f7f5f1 44%, #d0cac1 100%);
-  box-shadow: 0 4px 7px rgba(0,0,0,.18), inset -2px -3px 6px rgba(120,105,90,.2);
-  border: 1px solid rgba(110,100,90,.32);
-}
-
-.piece.last::after {
-  content: "";
-  position: absolute;
-  width: 24%;
-  height: 24%;
-  border-radius: 50%;
-  background: #c8422d;
-  left: 38%;
-  top: 38%;
-}
-
-@keyframes place {
-  from { transform: scale(.45); opacity: .3; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.panel {
-  padding: 22px;
-  border-radius: 22px;
-  background: rgba(255, 250, 242, .88);
-  border: 1px solid rgba(55, 39, 21, .12);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
-}
-
-.panel-section + .panel-section {
-  border-top: 1px solid rgba(55,39,21,.1);
-  margin-top: 22px;
-  padding-top: 22px;
-}
-
-.panel h2 {
-  margin: 0 0 14px;
-  font-size: 17px;
-}
-
-.stats {
-  display: grid;
-  gap: 10px;
-}
-
-.stats > div {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(143, 101, 53, .07);
-}
-
-.stats span { color: var(--muted); }
-
-.actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.actions button,
-.modal button {
-  padding: 11px 15px;
-  border-radius: 12px;
-  background: #e6ded3;
-  color: #2c2925;
-  font-weight: 700;
-}
-
-button.primary {
-  color: white;
-  background: #2e2b27;
-}
-
-.actions button:hover,
-.modal button:hover {
-  filter: brightness(.96);
-}
-
-.rules p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.7;
-  font-size: 14px;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 18, 15, .52);
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  z-index: 10;
-}
-
-.modal.hidden { display: none; }
-
-.modal-card {
-  width: min(410px, 100%);
-  padding: 30px;
-  text-align: center;
-  background: #fffaf2;
-  border-radius: 24px;
-  box-shadow: 0 25px 80px rgba(0,0,0,.25);
-}
-
-.modal-card h2 {
-  margin: 4px 0 8px;
-  font-size: 30px;
-}
-
-.modal-card p:not(.eyebrow) {
-  color: var(--muted);
-  margin: 0 0 22px;
-}
-
-@media (max-width: 850px) {
-  .game-layout { grid-template-columns: 1fr; }
-  .panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .panel-section + .panel-section { margin: 0; padding: 0; border-top: 0; }
-}
-
-@media (max-width: 620px) {
-  .app { width: min(100% - 18px, 1180px); padding-top: 20px; }
-  .hero { align-items: start; flex-direction: column; }
-  .status-card { width: 100%; }
-  .board-wrap { padding: 12px; border-radius: 18px; }
-  .panel { grid-template-columns: 1fr; }
-  .panel-section + .panel-section { border-top: 1px solid rgba(55,39,21,.1); padding-top: 18px; }
-}
-
-</style>
+:root{--bg:#f4efe6;--panel:#fffaf2;--ink:#1f1f1f;--muted:#766f66;--wood:#d7a65d;--wood-dark:#8e6535;--line:rgba(50,34,17,.58);--shadow:0 18px 50px rgba(48,35,20,.14)}
+*{box-sizing:border-box}html{-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100vh;font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.9),transparent 30%),linear-gradient(135deg,#efe7da 0%,#f8f2e9 50%,#eee4d6 100%)}button{font:inherit;border:0;cursor:pointer;-webkit-appearance:none;appearance:none}button:focus-visible{outline:3px solid rgba(52,103,177,.45);outline-offset:2px}.app{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:36px 0 48px}.hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:26px}.eyebrow{margin:0 0 8px;font-size:12px;letter-spacing:.18em;font-weight:800;color:var(--muted)}h1{margin:0;font-size:clamp(40px,7vw,72px);letter-spacing:-.05em;line-height:.95}.subtitle{margin:12px 0 0;color:var(--muted)}.status-card{min-width:190px;padding:15px 18px;border:1px solid rgba(55,39,21,.12);background:rgba(255,250,242,.78);backdrop-filter:blur(10px);border-radius:18px;box-shadow:0 10px 30px rgba(48,35,20,.08)}.status-label{display:block;font-size:12px;color:var(--muted);margin-bottom:7px}.turn-indicator{display:flex;align-items:center;gap:9px;min-height:24px}.stone{width:22px;height:22px;border-radius:50%;display:inline-block;flex:0 0 auto}.stone.black{background:radial-gradient(circle at 35% 30%,#555,#171717 55%,#050505);box-shadow:inset -3px -4px 8px rgba(0,0,0,.45),0 2px 4px rgba(0,0,0,.2)}.stone.white{background:radial-gradient(circle at 35% 30%,#fff,#e5e2dd 70%,#beb8af);box-shadow:inset -2px -3px 7px rgba(120,110,100,.25),0 2px 4px rgba(0,0,0,.16);border:1px solid #cfc8bd}.thinking-badge{margin-left:auto;padding:3px 7px;font-size:11px;border-radius:999px;color:#6e5739;background:rgba(215,166,93,.18)}.hidden{display:none!important}.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:24px;align-items:start}.board-wrap{border-radius:24px;padding:28px;background:linear-gradient(145deg,#e1b770,#c99043);box-shadow:var(--shadow);border:1px solid rgba(94,58,20,.25);overflow:hidden}.board{position:relative;aspect-ratio:1;width:100%;background:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px),linear-gradient(145deg,#deb16b,#c99043);background-size:calc(100% / 14) calc(100% / 14),calc(100% / 14) calc(100% / 14),100% 100%;background-position:0 0,0 0,0 0;border:1px solid rgba(63,38,13,.46);box-shadow:inset 0 0 20px rgba(98,57,20,.13);touch-action:manipulation}.cell{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);width:calc(100% / 14);aspect-ratio:1;padding:0;margin:0;display:grid;place-items:center;background:transparent;border:0;border-radius:50%;z-index:2}.cell:disabled{cursor:default}.cell:not(:disabled):hover::after,.cell:not(:disabled):focus-visible::after{content:"";position:absolute;width:24%;aspect-ratio:1;border-radius:50%;background:rgba(40,30,20,.2)}.star{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);width:clamp(5px,1.25%,10px);aspect-ratio:1;border-radius:50%;background:rgba(49,31,13,.72);pointer-events:none;z-index:1}.piece{width:78%;aspect-ratio:1;border-radius:50%;position:relative;z-index:3;pointer-events:none;animation:place .14s ease-out}.piece.black{background:radial-gradient(circle at 34% 28%,#666 0%,#222 42%,#050505 79%);box-shadow:0 4px 7px rgba(0,0,0,.33),inset -3px -4px 7px rgba(0,0,0,.42)}.piece.white{background:radial-gradient(circle at 34% 28%,#fff 0%,#f7f5f1 44%,#d0cac1 100%);box-shadow:0 4px 7px rgba(0,0,0,.18),inset -2px -3px 6px rgba(120,105,90,.2);border:1px solid rgba(110,100,90,.32)}.piece.last::after{content:"";position:absolute;width:23%;aspect-ratio:1;border-radius:50%;background:#c8422d;left:38.5%;top:38.5%}@keyframes place{from{transform:scale(.45);opacity:.25}to{transform:scale(1);opacity:1}}.panel{padding:22px;border-radius:22px;background:rgba(255,250,242,.88);border:1px solid rgba(55,39,21,.12);box-shadow:var(--shadow);backdrop-filter:blur(10px)}.panel-section+.panel-section{border-top:1px solid rgba(55,39,21,.1);margin-top:22px;padding-top:22px}.panel h2{margin:0 0 14px;font-size:17px}.mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:5px;border-radius:14px;background:rgba(143,101,53,.08)}.mode-btn{min-height:40px;padding:8px 10px;border-radius:10px;color:#5d564d;background:transparent;font-weight:700}.mode-btn.active{color:#fff;background:#2e2b27;box-shadow:0 4px 12px rgba(40,36,31,.16)}.helper-text{margin:9px 2px 0;font-size:12px;color:var(--muted);line-height:1.55}.stats{display:grid;gap:10px}.stats>div{display:flex;justify-content:space-between;padding:10px 12px;border-radius:12px;background:rgba(143,101,53,.07)}.stats span{color:var(--muted)}.actions{display:grid;grid-template-columns:1fr;gap:10px}.actions button,.modal button{min-height:44px;padding:11px 15px;border-radius:12px;background:#e6ded3;color:#2c2925;font-weight:700}.actions button:disabled{opacity:.45;cursor:not-allowed}button.primary{color:#fff;background:#2e2b27}.actions button:not(:disabled):hover,.modal button:hover,.mode-btn:hover{filter:brightness(.97)}.rules p{margin:0;color:var(--muted);line-height:1.7;font-size:14px}.modal{position:fixed;inset:0;background:rgba(20,18,15,.52);display:grid;place-items:center;padding:20px;z-index:10}.modal-card{width:min(410px,100%);padding:30px;text-align:center;background:#fffaf2;border-radius:24px;box-shadow:0 25px 80px rgba(0,0,0,.25)}.modal-card h2{margin:4px 0 8px;font-size:30px}.modal-card p:not(.eyebrow){color:var(--muted);margin:0 0 22px}@media(max-width:900px){.game-layout{grid-template-columns:1fr}.panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px}.panel-section+.panel-section{margin:0;padding:0;border-top:0}.rules{grid-column:1/-1}}@media(max-width:620px){.app{width:min(100% - 18px,1180px);padding:20px 0 32px}.hero{align-items:start;flex-direction:column;gap:18px}.status-card{width:100%}.board-wrap{padding:20px;border-radius:18px}.panel{display:block}.panel-section+.panel-section{border-top:1px solid rgba(55,39,21,.1);margin-top:18px;padding-top:18px}.rules{grid-column:auto}}@media(max-width:390px){.board-wrap{padding:17px}.app{width:min(100% - 12px,1180px)}}
+  </style>
 </head>
 <body>
   <main class="app">
     <header class="hero">
-      <div>
-        <p class="eyebrow">GOMOKU · 15×15</p>
-        <h1>五子棋</h1>
-        <p class="subtitle">双人本地对战 · 连成五子即可获胜</p>
-      </div>
-      <div class="status-card">
-        <span class="status-label">当前回合</span>
-        <div id="turnIndicator" class="turn-indicator">
-          <span class="stone black"></span>
-          <strong id="turnText">黑棋</strong>
-        </div>
-      </div>
+      <div><p class="eyebrow">GOMOKU · 15×15</p><h1>五子棋</h1><p id="subtitle" class="subtitle">双人本地对战 · 连成五子即可获胜</p></div>
+      <div class="status-card" aria-live="polite"><span class="status-label">当前回合</span><div id="turnIndicator" class="turn-indicator"><span class="stone black"></span><strong id="turnText">黑棋</strong><span id="thinkingBadge" class="thinking-badge hidden">思考中…</span></div></div>
     </header>
-
     <section class="game-layout">
-      <div class="board-wrap">
-        <div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div>
-      </div>
-
+      <div class="board-wrap"><div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div></div>
       <aside class="panel">
-        <div class="panel-section">
-          <h2>对局信息</h2>
-          <div class="stats">
-            <div><span>黑棋</span><strong id="blackCount">0</strong></div>
-            <div><span>白棋</span><strong id="whiteCount">0</strong></div>
-            <div><span>总手数</span><strong id="moveCount">0</strong></div>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <h2>操作</h2>
-          <div class="actions">
-            <button id="undoBtn" type="button">悔棋</button>
-            <button id="restartBtn" class="primary" type="button">重新开始</button>
-          </div>
-        </div>
-
-        <div class="panel-section rules">
-          <h2>规则</h2>
-          <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。</p>
-        </div>
+        <div class="panel-section"><h2>游戏模式</h2><div class="mode-switch" role="group" aria-label="游戏模式"><button id="pvpModeBtn" class="mode-btn active" type="button" aria-pressed="true">双人对战</button><button id="aiModeBtn" class="mode-btn" type="button" aria-pressed="false">人机对战</button></div><p id="modeHint" class="helper-text">两名玩家在同一设备轮流落子。</p></div>
+        <div class="panel-section"><h2>对局信息</h2><div class="stats"><div><span id="blackLabel">黑棋</span><strong id="blackCount">0</strong></div><div><span id="whiteLabel">白棋</span><strong id="whiteCount">0</strong></div><div><span>总手数</span><strong id="moveCount">0</strong></div></div></div>
+        <div class="panel-section"><h2>操作</h2><div class="actions"><button id="undoBtn" type="button">悔棋</button><button id="soundBtn" type="button" aria-pressed="true">音效：开</button><button id="restartBtn" class="primary" type="button">重新开始</button></div></div>
+        <div class="panel-section rules"><h2>规则</h2><p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。当前版本采用基础自由五子棋规则，不含禁手。</p></div>
       </aside>
     </section>
   </main>
-
-  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
-    <div class="modal-card">
-      <p class="eyebrow">GAME OVER</p>
-      <h2 id="resultTitle">黑棋获胜</h2>
-      <p id="resultText">恭喜完成五子连线。</p>
-      <button id="playAgainBtn" class="primary" type="button">再来一局</button>
-    </div>
-  </div>
-
-  <script>
-const SIZE = 15;
-const boardEl = document.getElementById('board');
-const turnText = document.getElementById('turnText');
-const turnIndicator = document.getElementById('turnIndicator');
-const moveCountEl = document.getElementById('moveCount');
-const blackCountEl = document.getElementById('blackCount');
-const whiteCountEl = document.getElementById('whiteCount');
-const undoBtn = document.getElementById('undoBtn');
-const restartBtn = document.getElementById('restartBtn');
-const playAgainBtn = document.getElementById('playAgainBtn');
-const modal = document.getElementById('modal');
-const resultTitle = document.getElementById('resultTitle');
-const resultText = document.getElementById('resultText');
-
-let board = [];
-let currentPlayer = 1; // 1 = black, 2 = white
-let moves = [];
-let gameOver = false;
-
-function initGame() {
-  board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
-  currentPlayer = 1;
-  moves = [];
-  gameOver = false;
-  modal.classList.add('hidden');
-  renderBoard();
-  updateStatus();
-}
-
-function renderBoard() {
-  boardEl.innerHTML = '';
-
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      const cell = document.createElement('button');
-      cell.type = 'button';
-      cell.className = 'cell';
-      cell.dataset.row = r;
-      cell.dataset.col = c;
-      cell.setAttribute('role', 'gridcell');
-      cell.setAttribute('aria-label', `第${r + 1}行，第${c + 1}列`);
-      cell.addEventListener('click', () => placeStone(r, c));
-
-      const value = board[r][c];
-      if (value !== 0) {
-        const piece = document.createElement('span');
-        piece.className = `piece ${value === 1 ? 'black' : 'white'}`;
-
-        const last = moves[moves.length - 1];
-        if (last && last.r === r && last.c === c) {
-          piece.classList.add('last');
-        }
-        cell.appendChild(piece);
-      }
-
-      boardEl.appendChild(cell);
-    }
-  }
-}
-
-function placeStone(r, c) {
-  if (gameOver || board[r][c] !== 0) return;
-
-  board[r][c] = currentPlayer;
-  moves.push({ r, c, player: currentPlayer });
-
-  renderBoard();
-
-  if (hasWon(r, c, currentPlayer)) {
-    gameOver = true;
-    updateStatus();
-    setTimeout(() => showResult(currentPlayer), 180);
-    return;
-  }
-
-  if (moves.length === SIZE * SIZE) {
-    gameOver = true;
-    setTimeout(showDraw, 180);
-    return;
-  }
-
-  currentPlayer = currentPlayer === 1 ? 2 : 1;
-  updateStatus();
-}
-
-function hasWon(r, c, player) {
-  const directions = [
-    [1, 0],
-    [0, 1],
-    [1, 1],
-    [1, -1],
-  ];
-
-  return directions.some(([dr, dc]) => {
-    let count = 1;
-    count += countDirection(r, c, dr, dc, player);
-    count += countDirection(r, c, -dr, -dc, player);
-    return count >= 5;
-  });
-}
-
-function countDirection(r, c, dr, dc, player) {
-  let count = 0;
-  let nr = r + dr;
-  let nc = c + dc;
-
-  while (
-    nr >= 0 && nr < SIZE &&
-    nc >= 0 && nc < SIZE &&
-    board[nr][nc] === player
-  ) {
-    count++;
-    nr += dr;
-    nc += dc;
-  }
-  return count;
-}
-
-function undoMove() {
-  if (moves.length === 0) return;
-
-  const last = moves.pop();
-  board[last.r][last.c] = 0;
-  currentPlayer = last.player;
-  gameOver = false;
-  modal.classList.add('hidden');
-  renderBoard();
-  updateStatus();
-}
-
-function updateStatus() {
-  const blackCount = moves.filter(m => m.player === 1).length;
-  const whiteCount = moves.filter(m => m.player === 2).length;
-
-  blackCountEl.textContent = blackCount;
-  whiteCountEl.textContent = whiteCount;
-  moveCountEl.textContent = moves.length;
-
-  const oldStone = turnIndicator.querySelector('.stone');
-  oldStone.className = `stone ${currentPlayer === 1 ? 'black' : 'white'}`;
-  turnText.textContent = gameOver ? '对局结束' : (currentPlayer === 1 ? '黑棋' : '白棋');
-}
-
-function showResult(player) {
-  const name = player === 1 ? '黑棋' : '白棋';
-  resultTitle.textContent = `${name}获胜`;
-  resultText.textContent = `第 ${moves.length} 手完成五子连线。`;
-  modal.classList.remove('hidden');
-}
-
-function showDraw() {
-  resultTitle.textContent = '平局';
-  resultText.textContent = '棋盘已满，本局未分胜负。';
-  modal.classList.remove('hidden');
-}
-
-undoBtn.addEventListener('click', undoMove);
-restartBtn.addEventListener('click', initGame);
-playAgainBtn.addEventListener('click', initGame);
-
-initGame();
-
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle"><div class="modal-card"><p class="eyebrow">GAME OVER</p><h2 id="resultTitle">黑棋获胜</h2><p id="resultText">恭喜完成五子连线。</p><button id="playAgainBtn" class="primary" type="button">再来一局</button></div></div>
+<script>
+const SIZE=15,HUMAN=1,AI=2,DIRECTIONS=[[1,0],[0,1],[1,1],[1,-1]],STAR_POINTS=[[3,3],[3,11],[7,7],[11,3],[11,11]];
+const boardEl=document.getElementById('board'),subtitle=document.getElementById('subtitle'),turnText=document.getElementById('turnText'),turnIndicator=document.getElementById('turnIndicator'),thinkingBadge=document.getElementById('thinkingBadge'),moveCountEl=document.getElementById('moveCount'),blackCountEl=document.getElementById('blackCount'),whiteCountEl=document.getElementById('whiteCount'),blackLabel=document.getElementById('blackLabel'),whiteLabel=document.getElementById('whiteLabel'),undoBtn=document.getElementById('undoBtn'),soundBtn=document.getElementById('soundBtn'),restartBtn=document.getElementById('restartBtn'),pvpModeBtn=document.getElementById('pvpModeBtn'),aiModeBtn=document.getElementById('aiModeBtn'),modeHint=document.getElementById('modeHint'),playAgainBtn=document.getElementById('playAgainBtn'),modal=document.getElementById('modal'),resultTitle=document.getElementById('resultTitle'),resultText=document.getElementById('resultText');
+let board=[],currentPlayer=HUMAN,moves=[],gameOver=false,gameMode='pvp',aiThinking=false,aiTimer=null,audioContext=null,soundEnabled=loadSoundSetting();
+function loadSoundSetting(){try{return localStorage.getItem('gomoku-sound')!=='off'}catch{return true}}
+function saveSoundSetting(){try{localStorage.setItem('gomoku-sound',soundEnabled?'on':'off')}catch{}}
+function initGame(){if(aiTimer){clearTimeout(aiTimer);aiTimer=null}board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));currentPlayer=HUMAN;moves=[];gameOver=false;aiThinking=false;modal.classList.add('hidden');renderBoard();updateModeUI();updateStatus()}
+function renderBoard(){boardEl.innerHTML='';for(const[r,c]of STAR_POINTS){const star=document.createElement('span');star.className='star';setBoardPosition(star,r,c);boardEl.appendChild(star)}for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){const cell=document.createElement('button');cell.type='button';cell.className='cell';cell.dataset.row=r;cell.dataset.col=c;setBoardPosition(cell,r,c);cell.setAttribute('role','gridcell');cell.setAttribute('aria-label',`第${r+1}行，第${c+1}列`);cell.disabled=gameOver||aiThinking||(gameMode==='ai'&&currentPlayer===AI);cell.addEventListener('click',()=>handleCellClick(r,c));const value=board[r][c];if(value!==0){const piece=document.createElement('span');piece.className=`piece ${value===HUMAN?'black':'white'}`;const last=moves[moves.length-1];if(last&&last.r===r&&last.c===c)piece.classList.add('last');cell.appendChild(piece)}boardEl.appendChild(cell)}}
+function setBoardPosition(element,r,c){element.style.setProperty('--x',`${c/(SIZE-1)*100}%`);element.style.setProperty('--y',`${r/(SIZE-1)*100}%`)}
+function handleCellClick(r,c){if(gameOver||aiThinking||board[r][c]!==0)return;if(gameMode==='ai'&&currentPlayer===AI)return;ensureAudioReady();makeMove(r,c,currentPlayer)}
+function makeMove(r,c,player){if(!isInside(r,c)||board[r][c]!==0||gameOver)return false;board[r][c]=player;moves.push({r,c,player});playMoveSound(player);if(hasWon(r,c,player)){gameOver=true;aiThinking=false;renderBoard();updateStatus();playWinSound();setTimeout(()=>showResult(player),160);return true}if(moves.length===SIZE*SIZE){gameOver=true;aiThinking=false;renderBoard();updateStatus();playDrawSound();setTimeout(showDraw,160);return true}currentPlayer=player===HUMAN?AI:HUMAN;renderBoard();updateStatus();if(gameMode==='ai'&&currentPlayer===AI&&!gameOver)scheduleAiMove();return true}
+function scheduleAiMove(){aiThinking=true;renderBoard();updateStatus();aiTimer=setTimeout(()=>{aiTimer=null;if(gameOver||gameMode!=='ai'){aiThinking=false;updateStatus();return}const move=chooseAiMove();aiThinking=false;if(move)makeMove(move.r,move.c,AI)},360)}
+function chooseAiMove(){if(moves.length===0)return{r:7,c:7};const candidates=getCandidateMoves(),winning=candidates.find(({r,c})=>isWinningMove(r,c,AI));if(winning)return winning;const mustBlock=candidates.find(({r,c})=>isWinningMove(r,c,HUMAN));if(mustBlock)return mustBlock;let bestScore=-Infinity,bestMoves=[];for(const move of candidates){const attack=evaluateMove(move.r,move.c,AI),defense=evaluateMove(move.r,move.c,HUMAN),centerDistance=Math.abs(move.r-7)+Math.abs(move.c-7),centerBonus=Math.max(0,14-centerDistance)*3,score=attack+defense*1.12+centerBonus;if(score>bestScore){bestScore=score;bestMoves=[move]}else if(score===bestScore)bestMoves.push(move)}return bestMoves[Math.floor(Math.random()*bestMoves.length)]||candidates[0]||null}
+function getCandidateMoves(){const set=new Set;for(const move of moves)for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const r=move.r+dr,c=move.c+dc;if(isInside(r,c)&&board[r][c]===0)set.add(`${r},${c}`)}if(set.size===0)return[{r:7,c:7}];return[...set].map(key=>{const[r,c]=key.split(',').map(Number);return{r,c}})}
+function isWinningMove(r,c,player){board[r][c]=player;const won=hasWon(r,c,player);board[r][c]=0;return won}
+function evaluateMove(r,c,player){if(board[r][c]!==0)return-Infinity;board[r][c]=player;let score=0;for(const[dr,dc]of DIRECTIONS){const forward=countLine(r,c,dr,dc,player),backward=countLine(r,c,-dr,-dc,player),length=1+forward.count+backward.count,openEnds=Number(forward.open)+Number(backward.open);score+=patternScore(length,openEnds)}board[r][c]=0;return score}
+function countLine(r,c,dr,dc,player){let count=0,nr=r+dr,nc=c+dc;while(isInside(nr,nc)&&board[nr][nc]===player){count++;nr+=dr;nc+=dc}return{count,open:isInside(nr,nc)&&board[nr][nc]===0}}
+function patternScore(length,openEnds){if(length>=5)return 1e7;if(length===4&&openEnds===2)return 9e5;if(length===4&&openEnds===1)return 12e4;if(length===3&&openEnds===2)return 32e3;if(length===3&&openEnds===1)return 4e3;if(length===2&&openEnds===2)return 1100;if(length===2&&openEnds===1)return 180;if(length===1&&openEnds===2)return 30;return 5}
+function hasWon(r,c,player){return DIRECTIONS.some(([dr,dc])=>1+countDirection(r,c,dr,dc,player)+countDirection(r,c,-dr,-dc,player)>=5)}
+function countDirection(r,c,dr,dc,player){let count=0,nr=r+dr,nc=c+dc;while(isInside(nr,nc)&&board[nr][nc]===player){count++;nr+=dr;nc+=dc}return count}
+function isInside(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE}
+function undoMove(){if(moves.length===0)return;if(aiTimer){clearTimeout(aiTimer);aiTimer=null}aiThinking=false;gameOver=false;modal.classList.add('hidden');if(gameMode==='ai'){const last=moves[moves.length-1],steps=last?.player===AI&&moves.length>=2?2:1;for(let i=0;i<steps;i++)removeLastMove();currentPlayer=HUMAN}else{const last=moves[moves.length-1];removeLastMove();currentPlayer=last.player}renderBoard();updateStatus()}
+function removeLastMove(){const last=moves.pop();if(last)board[last.r][last.c]=0}
+function setGameMode(mode){if(mode!=='pvp'&&mode!=='ai'||gameMode===mode)return;gameMode=mode;initGame()}
+function updateModeUI(){const aiMode=gameMode==='ai';pvpModeBtn.classList.toggle('active',!aiMode);aiModeBtn.classList.toggle('active',aiMode);pvpModeBtn.setAttribute('aria-pressed',String(!aiMode));aiModeBtn.setAttribute('aria-pressed',String(aiMode));subtitle.textContent=aiMode?'人机对战 · 你执黑棋，电脑执白棋':'双人本地对战 · 连成五子即可获胜';modeHint.textContent=aiMode?'你执黑先手；电脑会优先进攻、拦截五连，并根据棋形选择落点。':'两名玩家在同一设备轮流落子。';blackLabel.textContent=aiMode?'你（黑棋）':'黑棋';whiteLabel.textContent=aiMode?'电脑（白棋）':'白棋'}
+function updateStatus(){const blackCount=moves.filter(m=>m.player===HUMAN).length,whiteCount=moves.filter(m=>m.player===AI).length;blackCountEl.textContent=blackCount;whiteCountEl.textContent=whiteCount;moveCountEl.textContent=moves.length;undoBtn.disabled=moves.length===0;const oldStone=turnIndicator.querySelector('.stone');oldStone.className=`stone ${currentPlayer===HUMAN?'black':'white'}`;thinkingBadge.classList.toggle('hidden',!aiThinking);if(gameOver)turnText.textContent='对局结束';else if(gameMode==='ai')turnText.textContent=currentPlayer===HUMAN?'你 · 黑棋':'电脑 · 白棋';else turnText.textContent=currentPlayer===HUMAN?'黑棋':'白棋';soundBtn.textContent=`音效：${soundEnabled?'开':'关'}`;soundBtn.setAttribute('aria-pressed',String(soundEnabled))}
+function showResult(player){let name;if(gameMode==='ai')name=player===HUMAN?'你获胜了':'电脑获胜';else name=player===HUMAN?'黑棋获胜':'白棋获胜';resultTitle.textContent=name;resultText.textContent=`第 ${moves.length} 手完成五子连线。`;modal.classList.remove('hidden')}
+function showDraw(){resultTitle.textContent='平局';resultText.textContent='棋盘已满，本局未分胜负。';modal.classList.remove('hidden')}
+function ensureAudioReady(){if(!soundEnabled)return null;const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return null;if(!audioContext)audioContext=new AudioCtx;if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});return audioContext}
+function playTone(frequency,duration,volume=.035,delay=0){const ctx=ensureAudioReady();if(!ctx||!soundEnabled)return;const start=ctx.currentTime+delay,oscillator=ctx.createOscillator(),gain=ctx.createGain();oscillator.type='sine';oscillator.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(Math.max(volume,.0001),start);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);oscillator.connect(gain);gain.connect(ctx.destination);oscillator.start(start);oscillator.stop(start+duration)}
+function playMoveSound(player){if(soundEnabled)playTone(player===HUMAN?330:420,.065,.028)}
+function playWinSound(){if(soundEnabled)[523.25,659.25,783.99].forEach((f,i)=>playTone(f,.22,.035,i*.1))}
+function playDrawSound(){if(soundEnabled){playTone(260,.13,.03);playTone(220,.18,.03,.12)}}
+function toggleSound(){soundEnabled=!soundEnabled;saveSoundSetting();updateStatus();if(soundEnabled){ensureAudioReady();playTone(500,.055,.02)}}
+undoBtn.addEventListener('click',undoMove);soundBtn.addEventListener('click',toggleSound);restartBtn.addEventListener('click',initGame);playAgainBtn.addEventListener('click',initGame);pvpModeBtn.addEventListener('click',()=>setGameMode('pvp'));aiModeBtn.addEventListener('click',()=>setGameMode('ai'));initGame();
 </script>
 </body>
 </html>
