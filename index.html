@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>五子棋 Gomoku</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">GOMOKU · 15×15</p>
+        <h1>五子棋</h1>
+        <p class="subtitle">双人本地对战 · 连成五子即可获胜</p>
+      </div>
+      <div class="status-card">
+        <span class="status-label">当前回合</span>
+        <div id="turnIndicator" class="turn-indicator">
+          <span class="stone black"></span>
+          <strong id="turnText">黑棋</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="game-layout">
+      <div class="board-wrap">
+        <div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div>
+      </div>
+
+      <aside class="panel">
+        <div class="panel-section">
+          <h2>对局信息</h2>
+          <div class="stats">
+            <div><span>黑棋</span><strong id="blackCount">0</strong></div>
+            <div><span>白棋</span><strong id="whiteCount">0</strong></div>
+            <div><span>总手数</span><strong id="moveCount">0</strong></div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>操作</h2>
+          <div class="actions">
+            <button id="undoBtn" type="button">悔棋</button>
+            <button id="restartBtn" class="primary" type="button">重新开始</button>
+          </div>
+        </div>
+
+        <div class="panel-section rules">
+          <h2>规则</h2>
+          <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="modal-card">
+      <p class="eyebrow">GAME OVER</p>
+      <h2 id="resultTitle">黑棋获胜</h2>
+      <p id="resultText">恭喜完成五子连线。</p>
+      <button id="playAgainBtn" class="primary" type="button">再来一局</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
