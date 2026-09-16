@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4efe6" />
   <title>五子棋 Gomoku</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -12,13 +13,14 @@
       <div>
         <p class="eyebrow">GOMOKU · 15×15</p>
         <h1>五子棋</h1>
-        <p class="subtitle">双人本地对战 · 连成五子即可获胜</p>
+        <p id="subtitle" class="subtitle">双人本地对战 · 连成五子即可获胜</p>
       </div>
-      <div class="status-card">
+      <div class="status-card" aria-live="polite">
         <span class="status-label">当前回合</span>
         <div id="turnIndicator" class="turn-indicator">
           <span class="stone black"></span>
           <strong id="turnText">黑棋</strong>
+          <span id="thinkingBadge" class="thinking-badge hidden">思考中…</span>
         </div>
       </div>
     </header>
@@ -30,10 +32,19 @@
 
       <aside class="panel">
         <div class="panel-section">
+          <h2>游戏模式</h2>
+          <div class="mode-switch" role="group" aria-label="游戏模式">
+            <button id="pvpModeBtn" class="mode-btn active" type="button" aria-pressed="true">双人对战</button>
+            <button id="aiModeBtn" class="mode-btn" type="button" aria-pressed="false">人机对战</button>
+          </div>
+          <p id="modeHint" class="helper-text">两名玩家在同一设备轮流落子。</p>
+        </div>
+
+        <div class="panel-section">
           <h2>对局信息</h2>
           <div class="stats">
-            <div><span>黑棋</span><strong id="blackCount">0</strong></div>
-            <div><span>白棋</span><strong id="whiteCount">0</strong></div>
+            <div><span id="blackLabel">黑棋</span><strong id="blackCount">0</strong></div>
+            <div><span id="whiteLabel">白棋</span><strong id="whiteCount">0</strong></div>
             <div><span>总手数</span><strong id="moveCount">0</strong></div>
           </div>
         </div>
@@ -42,13 +53,14 @@
           <h2>操作</h2>
           <div class="actions">
             <button id="undoBtn" type="button">悔棋</button>
+            <button id="soundBtn" type="button" aria-pressed="true">音效：开</button>
             <button id="restartBtn" class="primary" type="button">重新开始</button>
           </div>
         </div>
 
         <div class="panel-section rules">
           <h2>规则</h2>
-          <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。</p>
+          <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。当前版本采用基础自由五子棋规则，不含禁手。</p>
         </div>
       </aside>
     </section>
