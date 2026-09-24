@@ -128,7 +128,7 @@
       this.element.addEventListener('pointerup', event => this.finishPointer(event));
       this.element.addEventListener('pointercancel', event => this.finishPointer(event));
       this.element.addEventListener('pointerleave', event => {
-        if (event.pointerType !== 'mouse' && this.longPressActive) this.finishPointer(event);
+        if (event.pointerType !== 'mouse' && this.activePointerId === event.pointerId) this.finishPointer(event);
       });
     }
 
