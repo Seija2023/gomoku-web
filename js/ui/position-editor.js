@@ -46,7 +46,10 @@
       if (!item) return '';
       const reply = item.reply ? G.History.coordinate(item.reply) : '—';
       const follow = item.followUp ? G.History.coordinate(item.followUp) : '—';
-      return `综合 ${item.adjustedScore} · 进攻 ${item.attackLevel} · 防守 ${item.defenseLevel} · 回应 ${reply} · 后续 ${follow}`;
+      const variation = (item.line || []).slice(0, 7)
+        .map(point => G.History.coordinate(point))
+        .join(' → ');
+      return `综合 ${item.adjustedScore} · 进攻 ${item.attackLevel} · 防守 ${item.defenseLevel} · 回应 ${reply} · 后续 ${follow}${variation ? ` · 变化 ${variation}` : ''}`;
     }
 
     renderComparison(comparison) {
