@@ -235,6 +235,8 @@
       winningLine: showWinningLine,
       heatmap,
       ghostEnabled,
+      boardOverride: displayed.board,
+      movesOverride: displayed.moves,
     });
 
     let modePresentation = shown;
