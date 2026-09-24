@@ -144,26 +144,62 @@ async function connectCdp(webSocketUrl) {
 const started = await createServer();
 const server = started.server;
 const port = started.port;
-const debugPort = await freePort();
-const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'gomoku-smoke-'));
 const chromePath = findChrome();
 const appUrl = 'http://127.0.0.1:' + port + '/';
+const chromeProfiles = [];
 
-const chrome = spawn(chromePath, [
-  '--headless=new',
-  '--no-sandbox',
-  '--disable-gpu',
-  '--disable-dev-shm-usage',
-  '--disable-background-networking',
-  '--remote-debugging-port=' + debugPort,
-  '--user-data-dir=' + userDataDir,
-  'about:blank',
-], { stdio: 'ignore' });
+async function stopChrome(process) {
+  if (!process) return;
+  const exited = process.exitCode !== null
+    ? Promise.resolve()
+    : new Promise(resolve => process.once('exit', resolve));
+  try { process.kill('SIGTERM'); } catch {}
+  await Promise.race([
+    exited,
+    new Promise(resolve => setTimeout(resolve, 1500)),
+  ]);
+}
+
+async function launchChrome(maxAttempts = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const debugPort = await freePort();
+    const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'gomoku-smoke-'));
+    chromeProfiles.push(userDataDir);
+    const process = spawn(chromePath, [
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-background-networking',
+      '--remote-debugging-port=' + debugPort,
+      '--user-data-dir=' + userDataDir,
+      'about:blank',
+    ], { stdio: 'ignore' });
+
+    try {
+      await waitForHttp('http://127.0.0.1:' + debugPort + '/json/version', 15000);
+      return { process, debugPort, userDataDir, attempt };
+    } catch (error) {
+      lastError = error;
+      await stopChrome(process);
+      if (attempt < maxAttempts) await new Promise(resolve => setTimeout(resolve, 350));
+    }
+  }
+  throw new Error('Chrome failed to start after retries: ' + (lastError?.message || 'unknown error'));
+}
 
 let cdp;
 let standaloneCdp;
+let chrome;
+let debugPort;
+let userDataDir;
 try {
-  await waitForHttp('http://127.0.0.1:' + debugPort + '/json/version');
+  const launched = await launchChrome();
+  chrome = launched.process;
+  debugPort = launched.debugPort;
+  userDataDir = launched.userDataDir;
+
   const targetResponse = await fetch(
     'http://127.0.0.1:' + debugPort + '/json/new?' + encodeURIComponent(appUrl),
     { method: 'PUT' },
@@ -360,20 +396,15 @@ try {
   try { standaloneCdp?.ws.close(); } catch {}
   try { cdp?.ws.close(); } catch {}
 
-  const chromeExited = chrome.exitCode !== null
-    ? Promise.resolve()
-    : new Promise(resolve => chrome.once('exit', resolve));
-  chrome.kill('SIGTERM');
-  await Promise.race([
-    chromeExited,
-    new Promise(resolve => setTimeout(resolve, 1500)),
-  ]);
+  await stopChrome(chrome);
 
   await new Promise(resolve => server.close(resolve));
-  await rm(userDataDir, {
-    recursive: true,
-    force: true,
-    maxRetries: 5,
-    retryDelay: 100,
-  });
+  for (const dir of chromeProfiles) {
+    await rm(dir, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
+  }
 }
