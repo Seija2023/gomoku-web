@@ -219,14 +219,7 @@
   }
 
   function setMode(mode) {
-    if (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-      || game.mode === mode
-    ) return;
+    if (!workspaceManager.canEnterFromGame() || game.mode === mode) return;
 
     gameController.clearTimers();
     panel.hideResult();
@@ -239,32 +232,26 @@
   function handleCellClick(r, c) {
     if (boardView.pinnedKey()) boardView.clearGhost();
 
-    if (variationController.state.active) {
-      variationController.handleMove(r, c);
-      return;
+    switch (workspaceManager.activity()) {
+      case Activities.VARIATION:
+        variationController.handleMove(r, c);
+        return;
+      case Activities.POSITION_EDITOR:
+        positionEditorController.handleCell(r, c);
+        return;
+      case Activities.TRAINING:
+        trainingController.handleMove(r, c);
+        return;
+      case Activities.BRANCH:
+        branchController.handleMove(r, c);
+        return;
+      case Activities.REVIEW:
+        return;
+      default:
+        break;
     }
 
-    if (positionEditorController.state.active) {
-      positionEditorController.handleCell(r, c);
-      return;
-    }
-
-    if (trainingController.state.active) {
-      trainingController.handleMove(r, c);
-      return;
-    }
-
-    if (branchController.state.active) {
-      branchController.handleMove(r, c);
-      return;
-    }
-
-    if (
-      reviewController.state.active
-      || game.gameOver
-      || gameController.aiThinking
-      || game.board[r][c] !== 0
-    ) return;
+    if (game.gameOver || gameController.aiThinking || game.board[r][c] !== 0) return;
     if (game.mode === MODES.AI && game.currentPlayer === WHITE) return;
 
     audio.ensureReady();
@@ -281,19 +268,14 @@
   }
 
   function startReview(target = null, shared = false) {
-    if (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-    ) return;
-    if (!target && game.customPosition) return;
+    if (!workspaceManager.canEnterFromGame()) return false;
+    if (!target && game.customPosition) return false;
 
     gameController.clearTimers();
     panel.hideResult();
     reviewController.start(target || game, shared);
     refresh();
+    return true;
   }
 
   function openHistoryRecord(record) {
@@ -337,13 +319,7 @@
   }
 
   function startPositionEditor() {
-    if (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-    ) return false;
+    if (!workspaceManager.canEnterFromGame()) return false;
 
     gameController.clearTimers();
     panel.hideResult();
@@ -366,7 +342,7 @@
 
   function startGameFromEditor(mode) {
     if (
-      !positionEditorController.state.active
+      !workspaceManager.isActivity(Activities.POSITION_EDITOR)
       || positionEditorController.state.comparing
       || !positionEditorController.canStart()
     ) return false;
@@ -454,6 +430,11 @@
     }, `第 ${review.index} 手挑战`);
   }
 
+  workspaceView.bind(workspace => {
+    if (workspaceManager.select(workspace)) {
+      refresh(RenderFlags.STATUS | RenderFlags.SETTINGS | RenderFlags.ANALYSIS | RenderFlags.OVERLAYS);
+    }
+  });
   panel.bind({ undo, toggleSound, restart, setMode, startReview });
   reviewView.bind({
     seek: index => reviewController.seek(index),
@@ -558,6 +539,8 @@
     startVariationFromReview: () => variationWorkflow.startFromReview(),
     resumeVariation: () => variationWorkflow.resumeSaved(),
     exitVariation: () => variationWorkflow.exit(),
+    setWorkspace: workspace => workspaceManager.select(workspace),
+    getWorkspace: () => workspaceManager.snapshot(),
     getGame: () => game,
     getSettings: () => ({ ...settings }),
     getPerformanceStats: () => ({
@@ -567,6 +550,7 @@
       board: boardView.stats(),
       review: reviewView.stats(),
       game: gameController.stats(),
+      workspace: workspaceManager.snapshot(),
     }),
   });
 })(window.Gomoku = window.Gomoku || {});
