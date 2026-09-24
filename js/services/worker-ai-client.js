@@ -140,6 +140,13 @@
       this.metrics.fallbackRequests += 1;
       const method = item.operation === 'choose' ? 'chooseMove' : 'compareMove';
       const response = await this.fallback[method](item.context, item.channel);
+      const fallbackTrace = this.fallback.searchTrace?.(item.channel) || [];
+      this.traces.set(item.channel, fallbackTrace.map(entry => ({
+        ...entry,
+        bestMove: entry.bestMove ? { ...entry.bestMove } : null,
+      })));
+      const fallbackProgress = this.fallback.progress?.();
+      if (fallbackProgress) this.latest = { ...fallbackProgress, mode: 'main-thread' };
       const stale = !this.gate.isCurrent(item.channel, item.version);
       if (stale) this.metrics.staleResults += 1;
       item.resolve({
