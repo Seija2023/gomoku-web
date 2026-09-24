@@ -64,10 +64,11 @@
       this.mode = 'starting';
       this.readyPromise = new Promise(resolve => {
         let settled = false;
+        let timer = null;
         const settle = value => {
           if (settled) return;
           settled = true;
-          clearTimeout(timer);
+          if (timer) clearTimeout(timer);
           resolve(value);
         };
 
@@ -98,7 +99,7 @@
           settle(false);
         }
 
-        const timer = setTimeout(() => {
+        timer = setTimeout(() => {
           this.metrics.workerErrors += 1;
           this.switchToFallback('worker-timeout');
           settle(false);
@@ -177,13 +178,10 @@
       const stale = !this.gate.isCurrent(item.channel, item.version);
       if (stale) this.metrics.staleResults += 1;
 
-      const summary = message.result?.search
-        || message.result?.search?.recommendation
+      const summary = message.result?.search?.recommendation
+        || message.result?.search
         || message.result?.recommendedLine?.search
         || null;
-      if (message.result?.search?.recommendation) {
-        Object.assign(summary, message.result.search.recommendation);
-      }
       if (summary) {
         this.latest = {
           channel: item.channel,
@@ -297,6 +295,7 @@
     cancel(channel) {
       this.metrics.cancellations += 1;
       this.gate.invalidate(channel);
+      if (this.latest?.channel === channel) this.latest = { ...this.latest, active: false };
 
       let cancelledWorker = false;
       for (const [id, item] of this.pending.entries()) {
