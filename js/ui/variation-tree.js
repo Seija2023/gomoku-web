@@ -1,4 +1,14 @@
 (function (G) {
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[char]);
+  }
+
   class VariationTreeView {
     constructor(doc) {
       this.card = doc.getElementById('variationCard');
@@ -99,7 +109,7 @@
           button.type = 'button';
           button.dataset.variationChild = child.id;
           button.className = 'variation-child';
-          button.innerHTML = `<strong>${child.favorite ? '★ ' : ''}${child.label}</strong><span>${child.source === 'ai' ? 'AI' : '手动'}${child.score != null ? ` · ${Math.round(child.score)}` : ''}</span>`;
+          button.innerHTML = `<strong>${child.favorite ? '★ ' : ''}${escapeHtml(child.label)}</strong><span>${child.source === 'ai' ? 'AI' : '手动'}${child.score != null ? ` · ${Math.round(child.score)}` : ''}</span>`;
           this.children.appendChild(button);
         }
       }
@@ -113,7 +123,7 @@
         button.style.setProperty('--depth', String(Math.min(8, node.depth || 0)));
         const move = node.move ? G.History.coordinate(node.move) : 'ROOT';
         button.innerHTML = `
-          <span class="variation-node-line"><strong>${node.favorite ? '★ ' : ''}${node.label}</strong><em>${move}</em></span>
+          <span class="variation-node-line"><strong>${node.favorite ? '★ ' : ''}${escapeHtml(node.label)}</strong><em>${move}</em></span>
           <small>${node.source === 'ai' ? 'AI 分支' : node.id === 'root' ? '根局面' : '手动分支'}${node.search?.depth ? ` · D${node.search.depth}` : ''}</small>
         `;
         this.tree.appendChild(button);
