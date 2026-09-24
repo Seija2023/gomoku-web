@@ -2,72 +2,60 @@
 
 ## 目标
 
-v2.0.0 将原先集中在 `script.js` 和 `style.css` 的代码拆分为职责清晰的模块，降低后续版本继续扩展 AI、规则、存档、PWA 和在线功能时的耦合度。
+v2.0.0 完成模块化重构；v2.1.0 在不破坏分层的前提下加入终局、复盘、分析和持久化能力。
 
-## JavaScript 模块
+## 主要模块
 
-### `js/config.js`
+- `js/config.js`：棋盘尺寸、棋色、模式、方向和延时常量
+- `js/core/rules.js`：边界、连续棋子、胜负判断、胜利线提取
+- `js/ai/evaluator.js`：AI 候选点与棋形评分
+- `js/game/game.js`：对局状态、落子、终局、悔棋、快照与恢复
+- `js/game/history.js`：棋谱坐标、手数标签、指定手数棋盘重建
+- `js/analysis/analyzer.js`：基础棋形节点和终局方向分析
+- `js/storage/storage.js`：未完成棋局和最近 20 局历史记录
+- `js/audio/audio.js`：Web Audio API
+- `js/ui/board.js`：棋盘、坐标、棋子、最后一步和胜利线高亮
+- `js/ui/panel.js`：模式、统计、非阻塞终局卡、历史列表
+- `js/ui/review.js`：复盘控制、棋谱和分析显示
+- `js/main.js`：应用控制器，协调 AI、保存、终局、复盘和 UI
 
-集中维护棋盘尺寸、黑白棋常量、游戏模式、四个胜负方向、星位以及 AI/结果提示延时。
-
-### `js/core/rules.js`
-
-纯规则层，只负责边界判断、连续棋子统计、五连判断和棋盘是否已满。这里不操作 DOM，不播放音效，也不了解 AI。
-
-### `js/ai/evaluator.js`
-
-AI 决策层。输入棋盘和历史手数，输出一个候选落点。当前算法包括立即取胜、立即防守、棋形评分和中心位置加权。
-
-### `js/game/game.js`
-
-对局状态层。维护棋盘、当前行动方、历史手数、模式和 gameOver 状态，提供 `play()`、`undo()`、`reset()`、`setMode()`。
-
-### `js/audio/audio.js`
-
-封装 Web Audio API 和音效开关持久化。其他模块不直接操作 AudioContext。
-
-### `js/ui/board.js`
-
-只负责棋盘 DOM 渲染、星位、棋子、最后一步标记和透明点击区域。
-
-### `js/ui/panel.js`
-
-负责模式按钮、统计、当前回合、思考提示、音效状态和结果弹窗。
-
-### `js/main.js`
-
-应用控制器。连接 Game、AI、Audio 和 UI，管理 AI 定时器、结果弹窗定时器及用户事件。这里是浏览器入口。
-
-## CSS 模块
-
-- `base.css`：全局变量、字体、按钮重置、基础文本
-- `layout.css`：页面、标题区、状态卡和主布局
-- `board.css`：棋盘、交互点、棋子和动画
-- `components.css`：侧边面板、按钮、统计、弹窗
-- `responsive.css`：平板和手机断点
-
-## 数据流
+## 对局数据流
 
 ```text
-用户点击
-   ↓
-main.js
+用户/AI落子
    ↓
 Game.play()
    ↓
-Rules.hasWon()
+Rules.findWinningLine()
    ↓
 更新 Game 状态
    ↓
-BoardView / PanelView 刷新
+BoardView + PanelView
    ↓
-如为 AI 回合 → AI.chooseMove() → Game.play()
+未结束 → Storage.saveCurrent()
+已结束 → Storage.saveFinished()
 ```
 
-音效由 `main.js` 在成功落子、胜利或平局后调用 `AudioManager`，不会影响规则计算。
+## 复盘数据流
+
+```text
+moves[]
+   ↓
+History.boardAt(index)
+   ↓
+BoardView
+   ↓
+ReviewView（棋谱 / 控制）
+   ↓
+Analyzer（基础棋形分析）
+```
+
+复盘使用独立的展示状态，不修改真实对局数据，因此退出复盘后可以安全返回原棋局。
 
 ## 构建与测试
 
-`npm test` 使用 Node 内置测试框架测试纯逻辑模块和关键工程约束。
+`npm test` 使用 Node 内置测试框架。
 
-`npm run build` 按 `index.html` 中的 CSS/JS 顺序，将模块化源码合并成 `dist/gomoku.html`。因此 `dist` 是构建产物，不应手工维护。
+`npm run build` 按 `index.html` 中的 CSS/JS 顺序生成单文件 `dist/gomoku.html`。
+
+GitHub Actions 会在提交和 Pull Request 时自动执行测试与构建。
