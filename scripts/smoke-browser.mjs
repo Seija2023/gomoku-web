@@ -212,7 +212,21 @@ try {
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {
   try { cdp?.ws.close(); } catch {}
+
+  const chromeExited = chrome.exitCode !== null
+    ? Promise.resolve()
+    : new Promise(resolve => chrome.once('exit', resolve));
   chrome.kill('SIGTERM');
+  await Promise.race([
+    chromeExited,
+    new Promise(resolve => setTimeout(resolve, 1500)),
+  ]);
+
   await new Promise(resolve => server.close(resolve));
-  await rm(userDataDir, { recursive: true, force: true });
+  await rm(userDataDir, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  });
 }
