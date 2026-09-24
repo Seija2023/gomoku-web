@@ -115,6 +115,7 @@
       if (!this.state.active || !this.state.tree.select(id)) return false;
       this.aiClient.cancel('variation');
       this.state.expanding = false;
+      this.persist();
       this.refresh(this.flags.BOARD | this.flags.STATUS | this.flags.ANALYSIS | this.flags.OVERLAYS);
       return true;
     }
