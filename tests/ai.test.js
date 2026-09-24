@@ -73,3 +73,16 @@ test('简单与困难模式都只返回空位置', () => {
     assert.equal(board[detail.move.r][detail.move.c], 0);
   }
 });
+
+
+test('自由摆局在没有 moves 历史时仍按实际棋盘生成候选点', () => {
+  const board = emptyBoard();
+  board[2][2] = Config.BLACK;
+  board[10][10] = Config.WHITE;
+
+  const candidates = AI.getCandidateMoves(board, []);
+  assert.ok(candidates.length > 1);
+  assert.ok(candidates.some(move => Math.abs(move.r - 2) <= 2 && Math.abs(move.c - 2) <= 2));
+  assert.ok(candidates.some(move => Math.abs(move.r - 10) <= 2 && Math.abs(move.c - 10) <= 2));
+  assert.equal(candidates.some(move => board[move.r][move.c] !== 0), false);
+});

@@ -57,6 +57,43 @@
           </div>
         </div>
 
+        <div id="positionEditorCard" class="position-editor-card hidden">
+          <div class="editor-header">
+            <div>
+              <p class="eyebrow">POSITION EDITOR</p>
+              <strong>自由摆局</strong>
+            </div>
+            <button id="editorExitBtn" type="button">退出摆局</button>
+          </div>
+
+          <div class="editor-toolbar">
+            <div class="editor-control">
+              <span class="control-label">摆放工具</span>
+              <div class="editor-tool-switch" role="group" aria-label="摆放工具">
+                <button id="editorToolBlack" class="active" type="button" aria-pressed="true">● 黑棋</button>
+                <button id="editorToolWhite" type="button" aria-pressed="false">○ 白棋</button>
+                <button id="editorToolErase" type="button" aria-pressed="false">橡皮擦</button>
+              </div>
+            </div>
+            <label class="editor-control">
+              <span class="control-label">下一手</span>
+              <select id="editorNextPlayer" class="control-select">
+                <option value="1">黑棋</option>
+                <option value="2">白棋</option>
+              </select>
+            </label>
+          </div>
+
+          <p id="editorSummary" class="editor-summary">黑 0 · 白 0 · 下一手：黑</p>
+          <div class="editor-actions">
+            <button id="editorClearBtn" type="button">清空棋盘</button>
+            <button id="editorRestoreBtn" type="button">恢复原局面</button>
+            <button id="editorAnalyzeBtn" type="button" aria-pressed="false">AI分析：关</button>
+            <button id="editorStartPvpBtn" class="primary" type="button">双人继续</button>
+            <button id="editorStartAiBtn" class="primary" type="button">对战 AI</button>
+          </div>
+        </div>
+
         <div class="board-wrap">
           <div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div>
         </div>
@@ -134,6 +171,12 @@
             <button id="aiModeBtn" class="mode-btn" type="button" aria-pressed="false">人机对战</button>
           </div>
           <p id="modeHint" class="helper-text">两名玩家在同一设备轮流落子。</p>
+        </div>
+
+        <div class="panel-section">
+          <h2>棋局实验室</h2>
+          <button id="positionEditorBtn" class="wide-button" type="button">自由摆局 · Position Editor</button>
+          <p class="helper-text">自由放置黑白棋、指定下一手，并从任意非终局局面继续对弈或调用本地 AI 分析。</p>
         </div>
 
         <div class="panel-section">
@@ -233,6 +276,7 @@
   <script src="js/core/rules.js" defer></script>
   <script src="js/app/render-flags.js" defer></script>
   <script src="js/game/position.js" defer></script>
+  <script src="js/game/editable-position.js" defer></script>
   <script src="js/ai/evaluator.js" defer></script>
   <script src="js/ai/search.js" defer></script>
   <script src="js/game/game.js" defer></script>
@@ -257,11 +301,13 @@
   <script src="js/ui/review.js" defer></script>
   <script src="js/ui/advantage-chart.js" defer></script>
   <script src="js/ui/insights.js" defer></script>
+  <script src="js/ui/position-editor.js" defer></script>
   <script src="js/controllers/review-controller.js" defer></script>
   <script src="js/controllers/training-controller.js" defer></script>
   <script src="js/controllers/share-controller.js" defer></script>
   <script src="js/controllers/game-controller.js" defer></script>
   <script src="js/controllers/branch-controller.js" defer></script>
+  <script src="js/controllers/position-editor-controller.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>

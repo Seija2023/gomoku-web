@@ -53,10 +53,18 @@
       else if (game.mode === MODES.AI) title = game.winner === BLACK ? '你获胜了' : '电脑获胜';
       else title = game.winner === BLACK ? '黑棋获胜' : '白棋获胜';
       this.resultTitle.textContent = title;
-      this.resultText.textContent = game.winner
-        ? `第 ${game.moves.length} 手完成五子连线。棋盘会保留，你可以悔棋、复盘或直接再来一局。`
-        : `棋盘已满，共 ${game.moves.length} 手。你可以复盘整局。`;
+      const stoneCount = G.Position.countStones(game.board);
+      if (game.customPosition) {
+        this.resultText.textContent = game.winner
+          ? `自定义局面继续后形成五连；当前棋盘共有 ${stoneCount} 枚棋子。`
+          : `自定义局面已下满，当前棋盘共有 ${stoneCount} 枚棋子。`;
+      } else {
+        this.resultText.textContent = game.winner
+          ? `第 ${game.moves.length} 手完成五子连线。棋盘会保留，你可以悔棋、复盘或直接再来一局。`
+          : `棋盘已满，共 ${game.moves.length} 手。你可以复盘整局。`;
+      }
       this.resultUndoBtn.disabled = game.moves.length === 0;
+      this.resultReviewBtn.disabled = Boolean(game.customPosition);
       this.resultCard.classList.remove('hidden');
     }
 
@@ -77,11 +85,11 @@
     }
 
     updateStatus(game, aiThinking, soundEnabled, interactionLocked = false, statusOverride = null) {
-      const blackCount = game.moves.filter(move => move.player === BLACK).length;
-      const whiteCount = game.moves.length - blackCount;
+      const blackCount = G.Position.countStones(game.board, BLACK);
+      const whiteCount = G.Position.countStones(game.board, G.Config.WHITE);
       this.blackCount.textContent = String(blackCount);
       this.whiteCount.textContent = String(whiteCount);
-      this.moveCount.textContent = String(game.moves.length);
+      this.moveCount.textContent = String(blackCount + whiteCount);
       this.undoBtn.disabled = game.moves.length === 0 || interactionLocked;
       this.restartBtn.disabled = interactionLocked;
       this.pvpModeBtn.disabled = interactionLocked;

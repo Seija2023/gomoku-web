@@ -7,6 +7,7 @@ const files = [
   '../js/core/rules.js',
   '../js/app/render-flags.js',
   '../js/game/position.js',
+  '../js/game/editable-position.js',
   '../js/ai/evaluator.js',
   '../js/ai/search.js',
   '../js/game/game.js',
@@ -31,11 +32,13 @@ const files = [
   '../js/ui/review.js',
   '../js/ui/advantage-chart.js',
   '../js/ui/insights.js',
+  '../js/ui/position-editor.js',
   '../js/controllers/review-controller.js',
   '../js/controllers/training-controller.js',
   '../js/controllers/share-controller.js',
   '../js/controllers/game-controller.js',
   '../js/controllers/branch-controller.js',
+  '../js/controllers/position-editor-controller.js',
   '../js/main.js',
 ];
 

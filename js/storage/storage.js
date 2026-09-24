@@ -35,7 +35,11 @@
   }
 
   function saveCurrent(snapshot) {
-    if (!snapshot || snapshot.gameOver || !snapshot.moves?.length) return clearCurrent();
+    if (
+      !snapshot
+      || snapshot.gameOver
+      || (!snapshot.moves?.length && !snapshot.customPosition)
+    ) return clearCurrent();
     return write(CURRENT_KEY, snapshot);
   }
 

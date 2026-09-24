@@ -39,10 +39,8 @@
     }
 
     positionKey(board, moves, currentPlayer = 0) {
-      if (moves) return G.Position.keyFromMoves(moves, currentPlayer);
-      let body = '';
-      for (const row of board || []) body += row.join('');
-      return `${body}:${currentPlayer}`;
+      if (board) return G.Position.boardKey(board, currentPlayer);
+      return G.Position.keyFromMoves(moves || [], currentPlayer);
     }
 
     cached(cache, key, producer, metricPrefix) {

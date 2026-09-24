@@ -8,11 +8,24 @@
 https://seija2023.github.io/gomoku-web/
 ```
 
-当前工程版本：**v2.3.3（控制器解耦与自动回归版）**。
+当前工程版本：**v2.4.0（棋局实验室 · Position Editor）**。
 
-## v2.3.3 重点
+## v2.4.0 重点
 
-这一版继续保持 **主要界面和功能不变**，重点完成 Controller 解耦、AI Client 抽象和短浏览器回归自动化。
+这一版正式进入棋局实验室阶段，在 v2.3.3 的 Controller / Position / AIClient 基础上加入自由摆局，并保持普通对局、复盘、训练和分享逻辑相互隔离。
+
+- 新增 Position Editor：自由摆放黑棋、白棋和擦除棋子
+- 可指定任意局面的下一手为黑棋或白棋
+- 可清空棋盘或恢复进入编辑器时的原局面
+- 可从自定义局面直接开始双人对局或本地 AI 对战
+- 可在编辑状态直接打开本地 AI 候选分析
+- 自定义局面使用 board + currentPlayer 表达，不伪造普通棋谱历史
+- AI 候选点改为依据实际棋盘占位生成，支持没有 moves 历史的局面
+- AnalysisService 缓存键改为实际棋盘状态，避免自由摆局缓存碰撞
+- 自定义对局支持未完成局面自动保存与刷新恢复
+- Chrome Smoke Test 新增真实 Position Editor 操作链
+
+## v2.3.3 架构基础
 
 - `main.js` 从约 970 行缩减到约 590 行，游戏、复盘、分支、训练和分享逻辑拆入独立 Controller
 - 新增 `MainThreadAIClient`，Controller 不再直接依赖具体 AI 实现，为 Web Worker 切换预留稳定接口
@@ -35,6 +48,7 @@ https://seija2023.github.io/gomoku-web/
 ## 现有功能
 
 - 双人本地对战与人机对战
+- 自由摆局 Position Editor，可指定下一手并从局面继续对弈 / AI 分析
 - 简单 / 普通 / 困难 AI
 - 均衡 / 进攻 / 防守 / 冒险 AI 棋风
 - Ghost Line：PC 悬停、手机长按拖动

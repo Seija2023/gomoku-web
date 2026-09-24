@@ -177,6 +177,18 @@ try {
 
   const initial = await cdp.evaluate("(() => ({ cells: document.querySelectorAll('.cell').length, initializations: Gomoku.App.getPerformanceStats().board.initializations }))()");
 
+  await cdp.evaluate("Gomoku.App.startPositionEditor()");
+  await cdp.waitFor("!document.getElementById('positionEditorCard').classList.contains('hidden')");
+  await cdp.evaluate("document.querySelector('[data-row=\"7\"][data-col=\"7\"]').click()");
+  await cdp.evaluate("document.getElementById('editorToolWhite').click(); document.querySelector('[data-row=\"7\"][data-col=\"8\"]').click()");
+  await cdp.evaluate("document.getElementById('editorAnalyzeBtn').click()");
+  await cdp.waitFor("document.querySelectorAll('#candidateCompare .candidate-card').length > 0");
+  const editorState = await cdp.evaluate("(() => ({ pieces: document.querySelectorAll('.piece').length, candidates: document.querySelectorAll('#candidateCompare .candidate-card').length, cardVisible: !document.getElementById('positionEditorCard').classList.contains('hidden'), initializations: Gomoku.App.getPerformanceStats().board.initializations }))()");
+  await cdp.evaluate("document.getElementById('editorStartPvpBtn').click()");
+  await cdp.waitFor("Gomoku.App.getGame().customPosition === true");
+  const customGame = await cdp.evaluate("(() => ({ black: Gomoku.App.getGame().board[7][7], white: Gomoku.App.getGame().board[7][8], moves: Gomoku.App.getGame().moves.length, editorHidden: document.getElementById('positionEditorCard').classList.contains('hidden') }))()");
+  await cdp.evaluate("Gomoku.App.restart()");
+
   await cdp.evaluate("document.querySelector('[data-row=\"7\"][data-col=\"7\"]').click()");
   await cdp.waitFor('Gomoku.App.getGame().moves.length === 1');
   const firstMove = await cdp.evaluate("(() => { const cell = document.querySelector('[data-row=\"7\"][data-col=\"7\"]'); return { cells: document.querySelectorAll('.cell').length, blackPiece: Boolean(cell.querySelector('.piece.black')) }; })()");
@@ -197,6 +209,10 @@ try {
 
   const checks = {
     initialCells: initial.cells === 225,
+    positionEditorPlaced: editorState.pieces === 2 && editorState.cardVisible,
+    positionEditorAnalyzed: editorState.candidates > 0,
+    customGameStarted: customGame.black === 1 && customGame.white === 2 && customGame.moves === 0 && customGame.editorHidden,
+    editorReusedBoardDom: editorState.initializations === 1,
     boardInitializedOnce: initial.initializations === 1 && replayAfter.boardInitializations === 1,
     firstMoveRendered: firstMove.blackPiece && firstMove.cells === 225,
     aiResponded: aiMoves >= 2,
@@ -207,7 +223,7 @@ try {
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
-  console.log(JSON.stringify({ checks, replayBefore, replayAfter, exceptions: cdp.exceptions }, null, 2));
+  console.log(JSON.stringify({ checks, editorState, customGame, replayBefore, replayAfter, exceptions: cdp.exceptions }, null, 2));
 
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {
