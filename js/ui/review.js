@@ -40,8 +40,9 @@
         btn.addEventListener('click', () => onSeek(i + 1));
         this.moveList.appendChild(btn);
       });
-      const active = this.moveList.querySelector('.active');
-      if (active) active.scrollIntoView({ block: 'nearest' });
+      // Keep the browser viewport fixed during replay. The active move is
+      // highlighted in the list, but replay must never pull the page away
+      // from the board.
       this.analysis.innerHTML = '';
       const summary = document.createElement('p');
       summary.innerHTML = `<strong>${analysis.winnerText}</strong> · 共 ${analysis.totalMoves} 手${analysis.winner ? ` · ${analysis.direction}` : ''}`;
