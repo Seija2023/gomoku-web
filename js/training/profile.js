@@ -5,8 +5,8 @@
     return total ? Math.round((value / total) * 100) : 0;
   }
 
-  function compute(records) {
-    const aiGames = records.filter(record => record.mode === MODES.AI);
+  function compute(records, mistakes = []) {
+    const aiGames = (records || []).filter(record => record.mode === MODES.AI);
     let wins = 0;
     let losses = 0;
     let draws = 0;
@@ -15,7 +15,7 @@
     let centerMoves = 0;
     let attackMoments = 0;
     let defenseMoments = 0;
-    let mistakes = 0;
+    let legacyMistakes = 0;
 
     for (const record of aiGames) {
       if (record.winner === BLACK) wins += 1;
@@ -34,13 +34,31 @@
         if (moment.player !== BLACK) continue;
         if (moment.type === 'attack' || moment.type === 'win') attackMoments += 1;
         if (moment.type === 'defense') defenseMoments += 1;
-        if (moment.type === 'mistake') mistakes += 1;
+        if (moment.type === 'mistake') legacyMistakes += 1;
       }
     }
 
     let style = '均衡';
     if (attackMoments >= defenseMoments * 1.7 && attackMoments >= 2) style = '偏进攻';
     else if (defenseMoments >= attackMoments * 1.7 && defenseMoments >= 2) style = '偏防守';
+
+    const errorCounts = {};
+    let totalLoss = 0;
+    let severeMistakes = 0;
+    for (const mistake of mistakes || []) {
+      errorCounts[mistake.type] = (errorCounts[mistake.type] || 0) + 1;
+      totalLoss += mistake.scoreLoss || 0;
+      if ((mistake.severity || 0) >= 4) severeMistakes += 1;
+    }
+
+    const weaknessRanking = Object.entries(errorCounts)
+      .map(([type, count]) => ({
+        type,
+        label: G.ErrorTaxonomy.info(type).label,
+        count,
+        priority: G.ErrorTaxonomy.info(type).priority,
+      }))
+      .sort((a, b) => b.count - a.count || b.priority - a.priority);
 
     return {
       games: aiGames.length,
@@ -51,7 +69,12 @@
       centerRate: percent(centerMoves, playerMoves),
       attackMoments,
       defenseMoments,
-      mistakes,
+      mistakes: mistakes?.length ?? legacyMistakes,
+      severeMistakes,
+      avgScoreLoss: mistakes?.length ? Math.round(totalLoss / mistakes.length) : 0,
+      errorCounts,
+      weaknessRanking,
+      topWeakness: weaknessRanking[0] || null,
       style,
     };
   }
