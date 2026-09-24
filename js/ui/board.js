@@ -124,6 +124,7 @@
         ghostEnabled = true,
       } = options;
       this.ghostEnabled = Boolean(ghostEnabled);
+      this.element.classList.toggle('ghost-enabled', this.ghostEnabled);
       this.clearHoldTimer();
       this.clearGhost();
 
