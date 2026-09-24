@@ -161,6 +161,7 @@ const chrome = spawn(chromePath, [
 ], { stdio: 'ignore' });
 
 let cdp;
+let standaloneCdp;
 try {
   await waitForHttp('http://127.0.0.1:' + debugPort + '/json/version');
   const targetResponse = await fetch(
@@ -174,8 +175,9 @@ try {
   await cdp.send('Runtime.enable');
   await cdp.send('Page.enable');
   await cdp.waitFor('window.Gomoku?.App && document.querySelectorAll(".cell").length === 225');
+  await cdp.waitFor("Gomoku.App.getPerformanceStats().aiClient.mode === 'worker'", 5000);
 
-  const initial = await cdp.evaluate("(() => ({ cells: document.querySelectorAll('.cell').length, initializations: Gomoku.App.getPerformanceStats().board.initializations }))()");
+  const initial = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { cells: document.querySelectorAll('.cell').length, initializations: perf.board.initializations, workerMode: perf.aiClient.mode, embeddedWorker: Boolean(window.GOMOKU_WORKER_SOURCE) }; })()");
 
   await cdp.evaluate("Gomoku.App.startPositionEditor()");
   await cdp.waitFor("!document.getElementById('positionEditorCard').classList.contains('hidden')");
@@ -196,8 +198,9 @@ try {
   const firstMove = await cdp.evaluate("(() => { const cell = document.querySelector('[data-row=\"7\"][data-col=\"7\"]'); return { cells: document.querySelectorAll('.cell').length, blackPiece: Boolean(cell.querySelector('.piece.black')) }; })()");
 
   await cdp.evaluate("Gomoku.App.restart(); Gomoku.App.setMode('ai'); document.querySelector('[data-row=\"7\"][data-col=\"7\"]').click()");
-  await cdp.waitFor('Gomoku.App.getGame().moves.length >= 2', 5000);
-  const aiMoves = await cdp.evaluate('Gomoku.App.getGame().moves.length');
+  await cdp.waitFor('Gomoku.App.getGame().moves.length >= 2', 7000);
+  const aiRuntime = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { moves: Gomoku.App.getGame().moves.length, mode: perf.aiClient.mode, progress: perf.aiClient.latestProgress, searchStatus: document.getElementById('aiSearchStatus').textContent }; })()");
+  const aiMoves = aiRuntime.moves;
 
   await cdp.evaluate("(() => { Gomoku.App.setMode('pvp'); const sequence = [[7,3],[0,0],[7,4],[0,2],[7,5],[0,4],[7,6],[0,6],[7,7]]; for (const pair of sequence) { const r = pair[0], c = pair[1]; document.querySelector('[data-row=\"' + r + '\"][data-col=\"' + c + '\"]').click(); } })()");
   await cdp.waitFor('Gomoku.App.getGame().gameOver === true');
@@ -209,8 +212,28 @@ try {
 
   const replayAfter = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { scrollY: window.scrollY, pieces: document.querySelectorAll('.piece').length, cells: document.querySelectorAll('.cell').length, boardInitializations: perf.board.initializations, reviewListBuilds: perf.review.listBuilds }; })()");
 
+  const standaloneUrl = appUrl + 'dist/gomoku.html';
+  const standaloneTargetResponse = await fetch(
+    'http://127.0.0.1:' + debugPort + '/json/new?' + encodeURIComponent(standaloneUrl),
+    { method: 'PUT' },
+  );
+  if (!standaloneTargetResponse.ok) throw new Error('Could not create standalone browser target');
+  const standaloneTarget = await standaloneTargetResponse.json();
+  standaloneCdp = await connectCdp(standaloneTarget.webSocketDebuggerUrl);
+  await standaloneCdp.send('Runtime.enable');
+  await standaloneCdp.send('Page.enable');
+  await standaloneCdp.waitFor('window.Gomoku?.App && document.querySelectorAll(".cell").length === 225', 7000);
+  await standaloneCdp.waitFor("Gomoku.App.getPerformanceStats().aiClient.mode === 'worker'", 5000);
+  await standaloneCdp.evaluate("Gomoku.App.setMode('ai'); document.querySelector('[data-row=\"7\"][data-col=\"7\"]').click()");
+  await standaloneCdp.waitFor('Gomoku.App.getGame().moves.length >= 2', 7000);
+  const standaloneState = await standaloneCdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { embedded: Boolean(window.GOMOKU_WORKER_SOURCE), mode: perf.aiClient.mode, moves: Gomoku.App.getGame().moves.length, progress: perf.aiClient.latestProgress }; })()");
+
   const checks = {
     initialCells: initial.cells === 225,
+    workerBackend: initial.workerMode === 'worker' && initial.embeddedWorker === false,
+    workerSearchTelemetry: aiRuntime.mode === 'worker' && aiRuntime.progress?.nodes > 0 && aiRuntime.progress?.depth >= 1 && aiRuntime.searchStatus.includes('Worker AI'),
+    standaloneBlobWorker: standaloneState.embedded && standaloneState.mode === 'worker',
+    standaloneAiResponded: standaloneState.moves >= 2 && standaloneState.progress?.nodes > 0,
     positionEditorPlaced: editorState.pieces === 2 && editorState.cardVisible,
     positionEditorAnalyzed: editorState.candidates > 0,
     counterfactualRendered: editorState.comparisonVisible && editorState.userMove && editorState.aiMove && editorState.reasons > 0,
@@ -227,10 +250,11 @@ try {
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
-  console.log(JSON.stringify({ checks, editorState, customGame, replayBefore, replayAfter, exceptions: cdp.exceptions }, null, 2));
+  console.log(JSON.stringify({ checks, initial, aiRuntime, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
 
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {
+  try { standaloneCdp?.ws.close(); } catch {}
   try { cdp?.ws.close(); } catch {}
 
   const chromeExited = chrome.exitCode !== null
