@@ -8,6 +8,7 @@
   const reviewView = new G.UI.ReviewView(document);
   const insights = new G.UI.InsightsView(document);
   const positionEditorView = new G.UI.PositionEditorView(document);
+  const variationView = new G.UI.VariationTreeView(document);
   const settings = G.Storage.loadSettings();
 
   const analysisService = new G.Services.AnalysisService();
@@ -50,6 +51,14 @@
     settings,
   });
 
+  const variationController = new G.Controllers.VariationController({
+    settings,
+    aiClient,
+    storage: G.Storage,
+    refresh,
+    flags: RenderFlags,
+  });
+
   const gameController = new G.Controllers.GameController({
     game,
     settings,
@@ -64,6 +73,7 @@
       || branchController.state.active
       || trainingController.state.active
       || positionEditorController.state.active
+      || variationController.state.active
     ),
     onHistoryChanged: () => {
       derivedService.invalidateHistory();
@@ -109,6 +119,7 @@
   }
 
   function displayGame() {
+    if (variationController.state.active) return variationController.target();
     if (positionEditorController.state.active) return positionEditorController.target();
     if (trainingController.state.active) return trainingController.state.target;
     if (branchController.state.active) return branchController.state.game;
@@ -131,7 +142,9 @@
     const training = trainingController.state;
     const review = reviewController.state;
     const editor = positionEditorController.state;
+    const variation = variationController.state;
 
+    if (variation.active) return shown.currentPlayer;
     if (editor.active) return editor.analysisEnabled ? shown.currentPlayer : null;
     if (training.active) return training.puzzles[training.index]?.player || BLACK;
     if (review.active) {
@@ -147,6 +160,15 @@
     const branch = branchController.state;
     const review = reviewController.state;
     const editor = positionEditorController.state;
+    const variation = variationController.state;
+
+    if (variation.active) {
+      return {
+        locked: variation.expanding || shown.gameOver,
+        statusOverride: variation.expanding ? '变化树 AI 扩展中' : '变化树实验室',
+        thinking: variation.expanding,
+      };
+    }
 
     if (editor.active) {
       return {
@@ -193,6 +215,7 @@
     const branch = branchController.state;
     const training = trainingController.state;
     const editor = positionEditorController.state;
+    const variation = variationController.state;
     const shown = displayGame();
 
     const needsDisplayed =
@@ -238,16 +261,20 @@
     }
 
     if (hasRenderFlag(mask, RenderFlags.STATUS)) {
-      const modePresentation = branch.active ? { ...shown, mode: MODES.AI } : shown;
+      const modePresentation = branch.active
+        ? { ...shown, mode: MODES.AI }
+        : variation.active ? { ...shown, mode: game.mode } : shown;
       panel.updateMode(modePresentation);
       panel.updateStatus(
         shown,
         state.thinking,
         audio.enabled,
-        review.active || branch.active || training.active || editor.active,
+        review.active || branch.active || training.active || editor.active || variation.active,
         state.statusOverride,
       );
-      insights.renderSearchStatus(aiClient.progress?.() || null);
+      const progress = aiClient.progress?.() || null;
+      insights.renderSearchStatus(progress);
+      insights.renderSearchInspector(aiClient.searchTrace?.() || [], progress);
     }
 
     if (hasRenderFlag(mask, RenderFlags.SETTINGS)) {
@@ -257,7 +284,9 @@
     if (hasRenderFlag(mask, RenderFlags.ANALYSIS)) {
       insights.renderExplanation(branch.active ? branch.lastInsight : gameController.lastAiInsight);
       const player = training.active ? null : analysisPlayer(shown);
-      const canAnalyze = editor.active ? editor.analysisEnabled : displayed.moves.length > 0;
+      const canAnalyze = editor.active
+        ? editor.analysisEnabled
+        : G.Position.countStones(displayed.board) > 0;
       const candidates = player && canAnalyze
         ? aiClient.candidates({
             board: displayed.board,
@@ -267,7 +296,7 @@
             limit: 3,
           })
         : [];
-      insights.renderCandidates(candidates, player);
+      insights.renderCandidates(candidates, player, boardView.pinnedKey());
     }
 
     if (hasRenderFlag(mask, RenderFlags.REVIEW)) {
@@ -307,6 +336,8 @@
       }
 
       positionEditorView.render(editor, positionEditorController.canStart());
+      variationView.render(variation);
+      variationView.renderSavedAvailability(Boolean(G.Storage.loadVariationTree()), variation.active);
     }
   }
 
@@ -315,12 +346,14 @@
     const training = trainingController.state;
     const branch = branchController.state;
     const editor = positionEditorController.state;
+    const variation = variationController.state;
 
     if (!settings.ghost || review.active || training.active || editor.active) return null;
     const shown = displayGame();
     if (!shown || shown.gameOver || shown.board[r]?.[c] !== 0) return null;
+    if (variation.active && variation.expanding) return null;
     if (branch.active && shown.currentPlayer !== branch.humanPlayer) return null;
-    if (!branch.active && shown.mode === MODES.AI && shown.currentPlayer === WHITE) return null;
+    if (!variation.active && !branch.active && shown.mode === MODES.AI && shown.currentPlayer === WHITE) return null;
 
     return aiClient.preview({
       board: shown.board,
@@ -337,6 +370,8 @@
     branchController.reset();
     trainingController.reset();
     positionEditorController.reset();
+    variationController.reset();
+    boardView.clearGhost();
   }
 
   function restart() {
@@ -356,6 +391,7 @@
       || branchController.state.active
       || trainingController.state.active
       || positionEditorController.state.active
+      || variationController.state.active
       || game.mode === mode
     ) return;
 
@@ -368,6 +404,13 @@
   }
 
   function handleCellClick(r, c) {
+    if (boardView.pinnedKey()) boardView.clearGhost();
+
+    if (variationController.state.active) {
+      variationController.handleMove(r, c);
+      return;
+    }
+
     if (positionEditorController.state.active) {
       positionEditorController.handleCell(r, c);
       return;
@@ -410,6 +453,7 @@
       || branchController.state.active
       || trainingController.state.active
       || positionEditorController.state.active
+      || variationController.state.active
     ) return;
     if (!target && game.customPosition) return;
 
@@ -447,6 +491,82 @@
     refresh();
   }
 
+  function startVariationFromReview() {
+    const data = reviewController.variationData();
+    if (!data) return false;
+
+    boardView.clearGhost();
+    reviewController.deactivateForBranch();
+    if (!variationController.startFromReview(data.prefix, data.index)) {
+      reviewController.resume();
+      return false;
+    }
+    refresh();
+    return true;
+  }
+
+  function startVariationCurrent() {
+    if (
+      reviewController.state.active
+      || branchController.state.active
+      || trainingController.state.active
+      || positionEditorController.state.active
+      || variationController.state.active
+    ) return false;
+
+    gameController.clearTimers();
+    panel.hideResult();
+    boardView.clearGhost();
+    if (!variationController.startFromGame(game)) return false;
+    refresh();
+    return true;
+  }
+
+  function resumeVariation() {
+    if (
+      reviewController.state.active
+      || branchController.state.active
+      || trainingController.state.active
+      || positionEditorController.state.active
+      || variationController.state.active
+    ) return false;
+
+    gameController.clearTimers();
+    panel.hideResult();
+    boardView.clearGhost();
+    if (!variationController.resumeSaved()) return false;
+    refresh();
+    return true;
+  }
+
+  function exitVariation() {
+    const result = variationController.exit();
+    if (!result.exited) return false;
+    boardView.clearGhost();
+
+    if (result.origin === 'review') reviewController.resume();
+    refresh();
+
+    if (result.origin !== 'review' && game.mode === MODES.AI && game.currentPlayer === WHITE && !game.gameOver) {
+      gameController.scheduleAiMove();
+    } else if (result.origin !== 'review' && game.gameOver) {
+      panel.showResult(game);
+    }
+    return true;
+  }
+
+  function toggleCandidateGhost(candidate) {
+    if (!settings.ghost || !candidate?.line?.length) return false;
+    const key = `${candidate.r},${candidate.c}`;
+    const pinned = boardView.pinGhostLine({
+      line: candidate.line.map(point => ({ ...point })),
+      reply: candidate.reply || null,
+      followUp: candidate.followUp || null,
+    }, key);
+    refresh(RenderFlags.ANALYSIS);
+    return pinned;
+  }
+
   function startSharedChallenge(payload) {
     gameController.clearTimers();
     if (!branchController.startShared(payload)) return false;
@@ -477,6 +597,7 @@
       || branchController.state.active
       || trainingController.state.active
       || positionEditorController.state.active
+      || variationController.state.active
       || !availablePuzzles.length
     ) return;
 
@@ -506,6 +627,7 @@
       || branchController.state.active
       || trainingController.state.active
       || positionEditorController.state.active
+      || variationController.state.active
     ) return false;
 
     gameController.clearTimers();
@@ -624,7 +746,7 @@
     seekEnd: () => reviewController.seekEnd(),
     togglePlay: () => reviewController.togglePlay(),
     exit: exitReview,
-    startBranch: startBranchFromReview,
+    startBranch: startVariationFromReview,
     toggleKeyOnly: () => reviewController.toggleKeyOnly(),
     shareGame: shareReviewGame,
     shareChallenge: shareReviewChallenge,
@@ -635,6 +757,7 @@
     toggleHeatmap,
     changeHeatmapMode,
     toggleGhost,
+    toggleCandidateGhost,
     startTraining,
     exitBranch,
     nextTraining,
@@ -650,6 +773,18 @@
     toggleCompareMode: () => positionEditorController.toggleCompareMode(),
     startGame: startGameFromEditor,
     exit: exitPositionEditor,
+  });
+  variationView.bind({
+    startCurrent: startVariationCurrent,
+    resumeSaved: resumeVariation,
+    select: id => variationController.select(id),
+    parent: () => variationController.parent(),
+    root: () => variationController.root(),
+    expand: () => variationController.expand(),
+    rename: label => variationController.rename(label),
+    toggleFavorite: () => variationController.toggleFavorite(),
+    removeCurrent: () => variationController.removeCurrent(),
+    exit: exitVariation,
   });
 
   refreshDerived();
@@ -687,6 +822,10 @@
     startPositionEditor,
     exitPositionEditor,
     startGameFromEditor,
+    startVariationCurrent,
+    startVariationFromReview,
+    resumeVariation,
+    exitVariation,
     getGame: () => game,
     getSettings: () => ({ ...settings }),
     getPerformanceStats: () => ({
