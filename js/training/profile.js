@@ -5,7 +5,7 @@
     return total ? Math.round((value / total) * 100) : 0;
   }
 
-  function compute(records, mistakes = []) {
+  function compute(records, mistakes = null) {
     const aiGames = (records || []).filter(record => record.mode === MODES.AI);
     let wins = 0;
     let losses = 0;
@@ -69,9 +69,9 @@
       centerRate: percent(centerMoves, playerMoves),
       attackMoments,
       defenseMoments,
-      mistakes: mistakes?.length ?? legacyMistakes,
-      severeMistakes,
-      avgScoreLoss: mistakes?.length ? Math.round(totalLoss / mistakes.length) : 0,
+      mistakes: Array.isArray(mistakes) ? mistakes.length : legacyMistakes,
+      severeMistakes: Array.isArray(mistakes) ? severeMistakes : legacyMistakes,
+      avgScoreLoss: Array.isArray(mistakes) && mistakes.length ? Math.round(totalLoss / mistakes.length) : 0,
       errorCounts,
       weaknessRanking,
       topWeakness: weaknessRanking[0] || null,
