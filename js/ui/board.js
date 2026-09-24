@@ -271,6 +271,8 @@
         winningLine = game.winningLine,
         heatmap = [],
         ghostEnabled = true,
+        boardOverride = null,
+        movesOverride = null,
       } = options;
 
       this.ghostEnabled = Boolean(ghostEnabled);
@@ -279,8 +281,8 @@
       this.clearGhost();
 
       const reviewMode = Number.isInteger(reviewIndex);
-      const moves = reviewMode ? game.moves.slice(0, reviewIndex) : game.moves;
-      const board = reviewMode ? boardAt(game.moves, reviewIndex) : game.board;
+      const moves = movesOverride || (reviewMode ? game.moves.slice(0, reviewIndex) : game.moves);
+      const board = boardOverride || (reviewMode ? boardAt(game.moves, reviewIndex) : game.board);
       const last = moves[moves.length - 1];
       const lastKey = last ? `${last.r},${last.c}` : '';
       const winningKeys = new Set((winningLine || []).map(cell => `${cell.r},${cell.c}`));
