@@ -20,6 +20,7 @@
   const shareController = new G.Controllers.ShareController(insights);
 
   let availablePuzzles = [];
+  let availableMistakes = [];
 
   const reviewController = new G.Controllers.ReviewController({
     analysisClient: aiClient,
@@ -120,8 +121,14 @@
   function refreshTrainingDerived(records = G.Storage.listHistory()) {
     const derived = derivedService.training(records, trainingController.progress);
     availablePuzzles = derived.puzzles;
-    insights.renderTrainingCount(derived.trainingStats.due, derived.trainingStats.total);
+    availableMistakes = derived.mistakes || [];
+    insights.renderTrainingCount(
+      derived.trainingStats.due,
+      derived.trainingStats.total,
+      derived.adaptive?.trainableMistakes || 0,
+    );
     insights.renderTrainingStats(derived.trainingStats);
+    insights.renderAdaptiveTraining(derived.adaptive, derived.puzzles);
     return derived;
   }
 
@@ -340,12 +347,7 @@
       }
 
       if (training.active) {
-        insights.showTraining(
-          training.puzzles[training.index],
-          training.index,
-          training.puzzles.length,
-          training.feedback,
-        );
+        insights.showTraining(training);
       } else {
         insights.hideTraining();
       }
@@ -518,23 +520,46 @@
     refresh();
   }
 
-  function startTraining() {
-    if (
+  function canStartTraining() {
+    return !(
       reviewController.state.active
       || branchController.state.active
       || trainingController.state.active
       || positionEditorController.state.active
       || variationController.state.active
       || !availablePuzzles.length
-    ) return;
+    );
+  }
+
+  function startTraining(mode = 'adaptive', puzzleId = null) {
+    if (!canStartTraining()) return false;
 
     gameController.clearTimers();
     panel.hideResult();
-    if (trainingController.start(availablePuzzles)) refresh();
+    if (!trainingController.start(availablePuzzles, {
+      mode,
+      puzzleId,
+      mistakes: availableMistakes,
+    })) return false;
+    refresh();
+    return true;
+  }
+
+  function startMistakeTraining() {
+    return startTraining('mistakes');
+  }
+
+  function startMistake(puzzleId) {
+    return startTraining('mistakes', puzzleId);
   }
 
   function nextTraining() {
-    trainingController.next();
+    const result = trainingController.next();
+    if (result === 'exit') exitTraining();
+  }
+
+  function openTrainingVariation() {
+    return variationWorkflow.startFromTraining();
   }
 
   function exitTraining() {
@@ -685,7 +710,10 @@
     changeHeatmapMode,
     toggleGhost,
     toggleCandidateGhost: candidate => variationWorkflow.toggleCandidateGhost(candidate),
-    startTraining,
+    startTraining: () => startTraining('adaptive'),
+    startMistakeTraining,
+    startMistake,
+    openTrainingVariation,
     exitBranch,
     nextTraining,
     exitTraining,
@@ -754,7 +782,10 @@
     undo,
     startReview,
     exitReview,
-    startTraining,
+    startTraining: () => startTraining('adaptive'),
+    startMistakeTraining,
+    startMistake,
+    openTrainingVariation,
     shareReviewGame,
     shareReviewChallenge,
     startPositionEditor,
