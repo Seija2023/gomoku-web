@@ -55,6 +55,7 @@ const files = [
   '../js/controllers/position-editor-controller.js',
   '../js/controllers/variation-controller.js',
   '../js/app/render-coordinator.js',
+  '../js/app/boot-guard.js',
   '../js/main.js',
 ];
 
