@@ -19,11 +19,11 @@
 
 .board-wrap {
   border-radius: 24px;
-  padding: 28px;
+  padding: 34px;
   background: linear-gradient(145deg, #e1b770, #c99043);
   box-shadow: var(--shadow);
   border: 1px solid rgba(94, 58, 20, .25);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .board {
@@ -42,6 +42,28 @@
   border: 1px solid rgba(63, 38, 13, .46);
   box-shadow: inset 0 0 20px rgba(98, 57, 20, .13);
   touch-action: manipulation;
+}
+
+.coord {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  color: rgba(56, 36, 17, .72);
+  font-size: clamp(9px, 1.2vw, 12px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.coord-top {
+  left: var(--x);
+  top: -22px;
+  transform: translateX(-50%);
+}
+
+.coord-left {
+  left: -22px;
+  top: var(--y);
+  transform: translateY(-50%);
 }
 
 .cell {
@@ -118,7 +140,19 @@
   top: 38.5%;
 }
 
+.piece.winner {
+  outline: 3px solid rgba(200, 66, 45, .88);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(255, 236, 166, .55), 0 4px 9px rgba(0,0,0,.28);
+  animation: winnerPulse .8s ease-in-out infinite alternate;
+}
+
 @keyframes place {
   from { transform: scale(.45); opacity: .25; }
   to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes winnerPulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.18); }
 }
