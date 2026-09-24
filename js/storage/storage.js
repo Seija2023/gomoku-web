@@ -1,4 +1,6 @@
 (function (G) {
+  G.StorageMigrations?.migrate?.();
+
   const CURRENT_KEY = 'gomoku-current-v2';
   const HISTORY_KEY = 'gomoku-history-v2';
   const SETTINGS_KEY = 'gomoku-settings-v23';
@@ -89,6 +91,7 @@
     HISTORY_KEY,
     SETTINGS_KEY,
     TRAINING_PROGRESS_KEY,
+    SCHEMA_VERSION: G.StorageMigrations?.CURRENT_SCHEMA || 0,
     saveCurrent,
     loadCurrent,
     clearCurrent,
