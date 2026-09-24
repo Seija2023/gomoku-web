@@ -33,8 +33,23 @@ test('历史记录可写入和删除', () => {
   assert.equal(Storage.listHistory().some(item => item.id === 'x'), false);
 });
 
-test('智能分析设置可以持久化', () => {
-  const settings = { difficulty: Config.AI_DIFFICULTIES.HARD, heatmap: true, heatmapMode: 'black' };
+test('v2.3 智能分析设置可以持久化并补齐默认值', () => {
+  const settings = {
+    difficulty: Config.AI_DIFFICULTIES.HARD,
+    persona: Config.AI_PERSONAS.ATTACK,
+    heatmap: true,
+    heatmapMode: 'black',
+    ghost: false,
+  };
   assert.equal(Storage.saveSettings(settings), true);
-  assert.deepEqual(Storage.loadSettings(), settings);
+  const loaded = Storage.loadSettings();
+  assert.equal(loaded.difficulty, settings.difficulty);
+  assert.equal(loaded.persona, settings.persona);
+  assert.equal(loaded.ghost, false);
+});
+
+test('训练间隔复习进度可以持久化', () => {
+  const progress = { p1: { repetitions: 2, dueAt: 123 } };
+  assert.equal(Storage.saveTrainingProgress(progress), true);
+  assert.deepEqual(Storage.loadTrainingProgress(), progress);
 });
