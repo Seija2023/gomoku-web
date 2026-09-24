@@ -263,6 +263,7 @@ try {
     });
     location.reload();
   })()`);
+  await new Promise(resolve => setTimeout(resolve, 250));
   await cdp.waitFor('window.Gomoku?.App && document.querySelectorAll(".cell").length === 225', 7000);
   await cdp.waitFor("document.querySelectorAll('.mistake-book-card').length >= 2 && Number(document.getElementById('mistakeTrainingCount').textContent) >= 2", 7000);
 
@@ -270,7 +271,7 @@ try {
 
   const adaptivePuzzle = await cdp.evaluate("(() => { const button = document.querySelector('[data-mistake-puzzle]'); const id = button.dataset.mistakePuzzle; const records = Gomoku.Storage.listHistory(); const mistakes = Gomoku.MistakeMiner.mine(records); const puzzles = Gomoku.Puzzles.generate(records, Gomoku.Config.MAX_TRAINING_PUZZLES, mistakes); const puzzle = puzzles.find(item => item.id === id); if (!puzzle) throw new Error('Adaptive smoke puzzle not found'); button.click(); return { id, expected: puzzle.expected, category: puzzle.category, sourceKind: puzzle.sourceKind }; })()");
   await cdp.waitFor("!document.getElementById('trainingCard').classList.contains('hidden')");
-  await cdp.evaluate("document.querySelector('[data-row=\"' + " + "adaptivePuzzle.expected.r" + " + '\"][data-col=\"' + " + "adaptivePuzzle.expected.c" + " + '\"]').click()");
+  await cdp.evaluate(`document.querySelector('[data-row="${adaptivePuzzle.expected.r}"][data-col="${adaptivePuzzle.expected.c}"]').click()`);
   await cdp.waitFor("document.getElementById('trainingFeedback').dataset.grade === 'best'");
   const adaptiveAnswer = await cdp.evaluate("(() => ({ grade: document.getElementById('trainingFeedback').dataset.grade, meta: document.getElementById('trainingMeta').textContent, detail: document.getElementById('trainingDetail').textContent, variationEnabled: !document.getElementById('trainingVariationBtn').disabled }))()");
 
