@@ -1,6 +1,6 @@
 # 五子棋 Gomoku Web
 
-一个无需后端即可运行的 15×15 五子棋网页小游戏，支持双人本地对战、人机对战、音效、悔棋和响应式布局。
+一个无需后端即可运行的 15×15 五子棋网页小游戏。
 
 在线版：
 
@@ -8,21 +8,25 @@
 https://seija2023.github.io/gomoku-web/
 ```
 
-当前工程版本：**v2.0.0（结构重构版）**。
+当前工程版本：**v2.1.0（终局与复盘版）**。
 
-## 功能
+## 主要功能
 
-- 15×15 棋盘
-- 双人本地对战
-- 人机对战：玩家执黑先手，电脑执白
-- AI 会优先完成五连、拦截对手五连，并根据棋形与中心位置选择落点
-- 自动检测横向、纵向和两种斜向五连
-- 落子、胜利和平局提示音，可关闭并保存设置
-- 最后一步落子标记
-- 悔棋：人机模式尽量回退一整轮“玩家 + 电脑”
-- 重新开始与对局手数统计
+- 双人本地对战与人机对战
+- 启发式 AI：优先取胜、封堵直接五连并结合棋形评分落子
+- 横、竖、两种斜向五连检测
+- 终局后保留最终棋盘，不再使用无法关闭的遮挡式弹窗
+- 终局后仍可悔棋继续
+- 获胜五连高亮
+- 完整复盘：开局 / 上一步 / 下一步 / 终局 / 自动播放
+- 棋谱列表与 A-O / 1-15 棋盘坐标
+- 基础棋形分析：活三、四连、活四、最终五连等关键节点
+- 最近 20 局历史记录，可从历史记录直接复盘
+- 未完成棋局自动保存，下次打开网页自动恢复
+- 落子、胜利和平局音效，可关闭并保存设置
+- 最后一步标记、悔棋、重新开始、手数统计
 - 桌面和手机响应式布局
-- 透明棋盘交互层，避免移动端按钮背景遮挡棋盘
+- 透明棋盘交互层，避免移动端默认按钮白块遮挡
 - 无第三方运行时依赖
 
 ## 工程结构
@@ -31,64 +35,45 @@ https://seija2023.github.io/gomoku-web/
 gomoku-web/
 ├── index.html
 ├── css/
-│   ├── base.css
-│   ├── layout.css
-│   ├── board.css
-│   ├── components.css
-│   └── responsive.css
 ├── js/
 │   ├── config.js
-│   ├── core/
-│   │   └── rules.js
-│   ├── ai/
-│   │   └── evaluator.js
+│   ├── core/rules.js
+│   ├── ai/evaluator.js
 │   ├── game/
-│   │   └── game.js
-│   ├── audio/
-│   │   └── audio.js
+│   │   ├── game.js
+│   │   └── history.js
+│   ├── analysis/analyzer.js
+│   ├── storage/storage.js
+│   ├── audio/audio.js
 │   ├── ui/
 │   │   ├── board.js
-│   │   └── panel.js
+│   │   ├── panel.js
+│   │   └── review.js
 │   └── main.js
 ├── tests/
-├── scripts/
-│   └── build-standalone.mjs
+├── scripts/build-standalone.mjs
 ├── docs/
-│   ├── USAGE.md
-│   ├── ARCHITECTURE.md
-│   └── CHANGELOG.md
-├── dist/
-│   └── gomoku.html
+├── dist/gomoku.html
 ├── package.json
 └── .github/workflows/ci.yml
 ```
 
-设计目标是让游戏规则、AI、界面、音效和应用控制彼此解耦，后续新增难度、禁手、棋谱、PWA 或在线对战时不必继续扩张一个巨大的 `script.js`。
-
-## 本地运行
-
-网页没有第三方前端依赖，可以直接打开 `index.html`。也可以使用任意静态服务器运行。
-
-单文件离线版：
-
-```text
-dist/gomoku.html
-```
+规则、AI、棋谱、存储、分析、UI 与应用控制分层维护，便于后续继续增加 AI 难度、PWA、专业规则和在线对战。
 
 ## 开发检查
 
-需要 Node.js 22 或近期版本：
+需要近期 Node.js：
 
 ```bash
 npm test
 npm run build
 ```
 
-`npm test` 会检查胜负规则、AI 必杀/必防、悔棋逻辑以及棋盘透明交互层等关键功能。`npm run build` 会从模块化源码重新生成 `dist/gomoku.html`。
+自动测试覆盖胜负判定、胜利线提取、AI 必杀/必防、终局悔棋、恢复存档、复盘棋盘重建、棋谱坐标、基础分析、历史存储以及移动端棋盘透明交互层。
 
 ## GitHub Pages
 
-GitHub Pages 从 `main` 分支根目录发布。更新 `main` 后，Pages 会自动重新构建，在线网址保持不变。
+GitHub Pages 从 `main` 分支根目录发布。提交到 `main` 后，Pages 会自动重新部署，在线网址保持不变。
 
 ## 规则说明
 
