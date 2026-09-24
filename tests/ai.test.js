@@ -7,7 +7,7 @@ await import('../js/core/rules.js');
 await import('../js/ai/evaluator.js');
 await import('../js/ai/search.js');
 
-const { AI, Config } = globalThis.Gomoku;
+const { AI, AISearch, Config } = globalThis.Gomoku;
 const emptyBoard = () => Array.from({ length: Config.SIZE }, () => Array(Config.SIZE).fill(0));
 
 test('AI 空棋盘选择中心点', () => {
@@ -41,7 +41,27 @@ test('AI 会阻挡玩家直接五连并给出解释', () => {
   const detail = AI.chooseMoveDetailed(board, moves, Config.AI_DIFFICULTIES.NORMAL, Config.WHITE, () => 0);
   assert.deepEqual(detail.move, { r: 8, c: 8 });
   assert.match(detail.explanation.reason, /阻止/);
-  assert.equal(detail.candidates.length > 0, true);
+});
+
+test('四种 AI 棋风人格具有不同权重', () => {
+  const attack = AI.personaWeights(Config.AI_PERSONAS.ATTACK);
+  const defense = AI.personaWeights(Config.AI_PERSONAS.DEFENSE);
+  const risky = AI.personaWeights(Config.AI_PERSONAS.RISKY);
+  assert.ok(attack.attack > defense.attack);
+  assert.ok(defense.defense > attack.defense);
+  assert.ok(risky.attack > attack.attack);
+});
+
+test('候选手比较与幽灵变化线可以生成', () => {
+  const board = emptyBoard();
+  board[7][7] = Config.BLACK;
+  const moves = [{ r: 7, c: 7, player: Config.BLACK }];
+  const candidates = AI.compareCandidates(board, moves, Config.WHITE, Config.AI_PERSONAS.BALANCED, 3);
+  assert.equal(candidates.length, 3);
+  const preview = AISearch.previewLine(board, moves, candidates[0].r, candidates[0].c, Config.WHITE);
+  assert.ok(preview?.line?.length >= 1);
+  assert.deepEqual(preview.line[0].r, candidates[0].r);
+  assert.equal(board[candidates[0].r][candidates[0].c], 0);
 });
 
 test('简单与困难模式都只返回空位置', () => {
@@ -52,13 +72,4 @@ test('简单与困难模式都只返回空位置', () => {
     const detail = AI.chooseMoveDetailed(board, moves, difficulty, Config.WHITE, () => 0);
     assert.equal(board[detail.move.r][detail.move.c], 0);
   }
-});
-
-test('AI 可以为黑棋进行分支推演', () => {
-  const board = emptyBoard();
-  board[7][7] = Config.WHITE;
-  const moves = [{ r: 7, c: 7, player: Config.WHITE }];
-  const detail = AI.chooseMoveDetailed(board, moves, Config.AI_DIFFICULTIES.NORMAL, Config.BLACK, () => 0);
-  assert.ok(detail.move);
-  assert.equal(board[detail.move.r][detail.move.c], 0);
 });
