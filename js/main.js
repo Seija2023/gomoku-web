@@ -103,6 +103,21 @@
     flags: RenderFlags,
   });
 
+  const trainingWorkflow = new G.Training.Workflow({
+    game,
+    gameController,
+    reviewController,
+    branchController,
+    trainingController,
+    positionEditorController,
+    variationController,
+    variationWorkflow,
+    panel,
+    refresh,
+    getPuzzles: () => availablePuzzles,
+    getMistakes: () => availableMistakes,
+  });
+
   const advantageChart = new G.UI.AdvantageChart(
     document.getElementById('advantageChart'),
     document.getElementById('advantageLabel'),
@@ -520,59 +535,6 @@
     refresh();
   }
 
-  function canStartTraining() {
-    return !(
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-      || !availablePuzzles.length
-    );
-  }
-
-  function startTraining(mode = 'adaptive', puzzleId = null) {
-    if (!canStartTraining()) return false;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    if (!trainingController.start(availablePuzzles, {
-      mode,
-      puzzleId,
-      mistakes: availableMistakes,
-    })) return false;
-    refresh();
-    return true;
-  }
-
-  function startMistakeTraining() {
-    return startTraining('mistakes');
-  }
-
-  function startMistake(puzzleId) {
-    return startTraining('mistakes', puzzleId);
-  }
-
-  function nextTraining() {
-    const result = trainingController.next();
-    if (result === 'exit') exitTraining();
-  }
-
-  function openTrainingVariation() {
-    return variationWorkflow.startFromTraining();
-  }
-
-  function exitTraining() {
-    if (!trainingController.exit()) return;
-    refresh();
-
-    if (game.mode === MODES.AI && game.currentPlayer === WHITE && !game.gameOver) {
-      gameController.scheduleAiMove();
-    } else if (game.gameOver) {
-      panel.showResult(game);
-    }
-  }
-
   function startPositionEditor() {
     if (
       reviewController.state.active
@@ -710,13 +672,13 @@
     changeHeatmapMode,
     toggleGhost,
     toggleCandidateGhost: candidate => variationWorkflow.toggleCandidateGhost(candidate),
-    startTraining: () => startTraining('adaptive'),
-    startMistakeTraining,
-    startMistake,
-    openTrainingVariation,
+    startTraining: () => trainingWorkflow.startAdaptive(),
+    startMistakeTraining: () => trainingWorkflow.startMistakes(),
+    startMistake: id => trainingWorkflow.startOne(id),
+    openTrainingVariation: () => trainingWorkflow.openVariation(),
     exitBranch,
-    nextTraining,
-    exitTraining,
+    nextTraining: () => trainingWorkflow.next(),
+    exitTraining: () => trainingWorkflow.exit(),
   });
   positionEditorView.bind({
     start: startPositionEditor,
@@ -782,10 +744,10 @@
     undo,
     startReview,
     exitReview,
-    startTraining: () => startTraining('adaptive'),
-    startMistakeTraining,
-    startMistake,
-    openTrainingVariation,
+    startTraining: () => trainingWorkflow.startAdaptive(),
+    startMistakeTraining: () => trainingWorkflow.startMistakes(),
+    startMistake: id => trainingWorkflow.startOne(id),
+    openTrainingVariation: () => trainingWorkflow.openVariation(),
     shareReviewGame,
     shareReviewChallenge,
     startPositionEditor,
