@@ -118,7 +118,7 @@
 
     renderCandidates(candidates, player) {
       const key = `${player || 0}|${(candidates || []).map(item =>
-        `${item.r},${item.c},${item.score},${item.attackLevel},${item.defenseLevel},${item.reply?.r ?? '-'},${item.reply?.c ?? '-'},${item.followUp?.r ?? '-'},${item.followUp?.c ?? '-'}`
+        `${item.r},${item.c},${item.score},${item.attackLevel},${item.defenseLevel},${item.reply?.r ?? '-'},${item.reply?.c ?? '-'},${item.followUp?.r ?? '-'},${item.followUp?.c ?? '-'},${(item.line || []).map(p => `${p.r}:${p.c}`).join('/')}`
       ).join(';')}`;
       if (key === this.renderKeys.candidates) return;
       this.renderKeys.candidates = key;
@@ -139,12 +139,16 @@
         const letter = String.fromCharCode(65 + index);
         const reply = item.reply ? G.History.coordinate(item.reply) : '—';
         const follow = item.followUp ? G.History.coordinate(item.followUp) : '—';
+        const variation = (item.line || []).slice(0, 5)
+          .map(point => G.History.coordinate(point))
+          .join(' → ') || '—';
         card.innerHTML = `
           <div class="candidate-title"><strong>${letter} · ${G.History.coordinate(item)}</strong><span>${item.score}</span></div>
           <div class="candidate-row"><span>进攻</span><strong>${item.attackLevel}</strong></div>
           <div class="candidate-row"><span>防守</span><strong>${item.defenseLevel}</strong></div>
           <div class="candidate-row"><span>对手回应</span><strong>${reply}</strong></div>
           <div class="candidate-row"><span>后续建议</span><strong>${follow}</strong></div>
+          <div class="candidate-row candidate-line"><span>变化线</span><strong>${variation}</strong></div>
         `;
         this.candidateCompare.appendChild(card);
       });
