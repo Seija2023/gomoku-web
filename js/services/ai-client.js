@@ -6,6 +6,7 @@
         ? new G.Services.CounterfactualService(analysisService)
         : null;
       this.gate = requestGate;
+      this.latest = null;
       this.metrics = { chooseRequests: 0, compareRequests: 0, staleResults: 0, cancellations: 0 };
     }
 
@@ -19,6 +20,13 @@
         return { stale: true, result: null, version };
       }
 
+      const searchOptions = {
+        ...(context.searchOptions || {}),
+        onProgress: progress => {
+          this.latest = { channel, active: true, mode: 'main-thread', ...progress };
+          context.onProgress?.(this.latest);
+        },
+      };
       const result = this.analysis.chooseMove(
         context.board,
         context.moves,
@@ -26,7 +34,12 @@
         context.player,
         context.persona,
         context.rng || Math.random,
+        searchOptions,
       );
+      if (result?.search) {
+        this.latest = { channel, active: false, mode: 'main-thread', ...result.search, bestMove: result.move };
+        context.onProgress?.(this.latest);
+      }
 
       const stale = !this.gate.isCurrent(channel, version);
       if (stale) this.metrics.staleResults += 1;
@@ -43,7 +56,21 @@
         return { stale: true, result: null, version };
       }
 
-      const result = this.counterfactual?.compare(context) || null;
+      const result = this.counterfactual?.compare({
+        ...context,
+        searchOptions: {
+          ...(context.searchOptions || {}),
+          onProgress: progress => {
+            this.latest = { channel, active: true, mode: 'main-thread', ...progress };
+            context.onProgress?.(this.latest);
+          },
+        },
+      }) || null;
+      const summary = result?.search?.recommendation || result?.recommendedLine?.search || null;
+      if (summary) {
+        this.latest = { channel, active: false, mode: 'main-thread', ...summary, bestMove: result.recommendedLine };
+        context.onProgress?.(this.latest);
+      }
       const stale = !this.gate.isCurrent(channel, version);
       if (stale) this.metrics.staleResults += 1;
       return { stale, result: stale ? null : result, version };
@@ -87,9 +114,15 @@
       return this.gate.current(channel);
     }
 
+    progress() {
+      return this.latest ? { ...this.latest } : null;
+    }
+
     stats() {
       return {
+        mode: 'main-thread',
         ...this.metrics,
+        latestProgress: this.progress(),
         requests: {
           ai: this.gate.current('ai'),
           branch: this.gate.current('branch'),

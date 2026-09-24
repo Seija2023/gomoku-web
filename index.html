@@ -239,6 +239,7 @@
 
           <p class="helper-text ghost-help">PC：悬停空点预览。手机：长按空点约 0.36 秒后拖动预览，松手不落子。</p>
           <div id="aiExplain" class="ai-explain">AI落子后，这里会显示它为什么选择该位置。</div>
+          <div id="aiSearchStatus" class="ai-search-status hidden" aria-live="polite"></div>
 
           <div class="candidate-section">
             <div class="candidate-heading">
@@ -317,6 +318,7 @@
   <script src="js/services/counterfactual-service.js" defer></script>
   <script src="js/services/request-gate.js" defer></script>
   <script src="js/services/ai-client.js" defer></script>
+  <script src="js/services/worker-ai-client.js" defer></script>
   <script src="js/training/puzzles.js" defer></script>
   <script src="js/training/profile.js" defer></script>
   <script src="js/training/scheduler.js" defer></script>

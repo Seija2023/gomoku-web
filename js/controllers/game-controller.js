@@ -130,6 +130,7 @@
           difficulty: this.settings.difficulty,
           player: G.Config.WHITE,
           persona: this.settings.persona,
+          onProgress: () => this.refresh(this.flags.STATUS),
         }, 'ai');
 
         if (response.stale) return;

@@ -118,6 +118,7 @@
           difficulty: this.settings.difficulty,
           player: this.state.aiPlayer,
           persona: this.settings.persona,
+          onProgress: () => this.refresh(this.flags.STATUS),
         }, 'branch');
 
         if (response.stale || !this.state.active) return;

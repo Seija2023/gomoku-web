@@ -755,3 +755,15 @@ button.primary {
   font-size: 12px;
   line-height: 1.55;
 }
+
+
+.ai-search-status {
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid rgba(55,39,21,.09);
+  border-radius: 10px;
+  background: rgba(46,43,39,.045);
+  color: #6a5f52;
+  font-size: 11px;
+  line-height: 1.5;
+}

@@ -30,14 +30,12 @@ test('AnalysisService 会复用同一局面的候选分析缓存', () => {
   assert.equal(after.rankMisses, before.rankMisses);
 });
 
-test('AI 落子可直接复用 AnalysisService 已缓存的 ranked 结果', () => {
+test('AI 落子通过 Local AI 2.0 搜索返回深度、节点和主变化', () => {
   const board = emptyBoard();
   board[7][7] = Config.BLACK;
   const moves = [{ r: 7, c: 7, player: Config.BLACK }];
   const service = new Services.AnalysisService();
 
-  service.ranked(board, moves, Config.WHITE, Config.AI_PERSONAS.ATTACK);
-  const before = service.stats();
   const result = service.chooseMove(
     board,
     moves,
@@ -45,11 +43,14 @@ test('AI 落子可直接复用 AnalysisService 已缓存的 ranked 结果', () =
     Config.WHITE,
     Config.AI_PERSONAS.ATTACK,
     () => 0,
+    { timeBudgetMs: 80, maxDepth: 3, candidateLimit: 6 },
   );
-  const after = service.stats();
 
   assert.ok(result.move);
-  assert.ok(after.rankHits > before.rankHits);
+  assert.ok(result.search);
+  assert.ok(result.search.depth >= 1);
+  assert.ok(result.search.nodes >= 1);
+  assert.ok(Array.isArray(result.principalVariation));
 });
 
 test('热力图和优势曲线重复请求命中结果缓存', () => {

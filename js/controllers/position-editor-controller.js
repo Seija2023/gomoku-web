@@ -81,6 +81,8 @@
           player: target.currentPlayer,
           persona: this.settings.persona,
           userMove: { r, c },
+          analysis: true,
+          onProgress: () => this.refresh(this.flags.STATUS),
         }, 'counterfactual');
 
         if (!this.state.active || response.stale) return false;

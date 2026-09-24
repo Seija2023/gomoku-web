@@ -8,9 +8,27 @@
 https://seija2023.github.io/gomoku-web/
 ```
 
-当前工程版本：**v2.4.0（棋局实验室 · Position Editor）**。
+当前工程版本：**v2.5.0（Local AI 2.0）**。
 
-## v2.4.0 重点
+## v2.5.0 重点
+
+这一版把 v2.4 的棋局实验室建立在更强的纯本地搜索引擎上，核心 AI 仍然不依赖任何外部 API。
+
+- 默认启用 `WorkerAIClient`，重搜索从 UI 主线程迁移到 Web Worker
+- Worker 初始化失败、浏览器限制或运行异常时自动回退 `MainThreadAIClient`
+- 取消 AI 请求会实际终止旧 Worker，避免旧搜索继续占用 CPU
+- 搜索加入 Iterative Deepening、Alpha-Beta 剪枝和按时间预算停止
+- 加入战术候选优先：直接成五、强制封堵、四类强威胁优先展开
+- 加入搜索级 Transposition Table，完整搜索结果可在重复局面复用
+- 简单 / 普通 / 困难使用不同时间预算、最大深度和候选宽度
+- 手机或低核心设备自动收紧计算预算，桌面设备保留更高搜索上限
+- Ghost Line 和候选变化线最多可展示 5 手连续变化
+- Counterfactual Analysis 使用更深搜索比较“你的尝试”和 AI 推荐手
+- AI 面板显示实际搜索深度、节点数、耗时、缓存命中、战术节点和当前推荐
+- GitHub Pages 使用独立 Worker；Standalone 单文件构建内嵌 Blob Worker
+- Chrome Smoke 同时验证普通网页 Worker 与 Standalone Blob Worker
+
+## v2.4.0 棋局实验室
 
 这一版正式进入棋局实验室阶段，在 v2.3.3 的 Controller / Position / AIClient 基础上加入自由摆局，并保持普通对局、复盘、训练和分享逻辑相互隔离。
 
@@ -52,7 +70,7 @@ https://seija2023.github.io/gomoku-web/
 - 双人本地对战与人机对战
 - 自由摆局 Position Editor，可指定下一手并从局面继续对弈 / AI 分析
 - “为什么这一步不如推荐手？”本地反事实比较，不依赖外部 API
-- 简单 / 普通 / 困难 AI
+- 简单 / 普通 / 困难 Local AI 2.0（Worker + 时间预算 + 迭代加深）
 - 均衡 / 进攻 / 防守 / 冒险 AI 棋风
 - Ghost Line：PC 悬停、手机长按拖动
 - 候选 A/B/C、热力图、可解释 AI
@@ -70,7 +88,7 @@ npm run build
 npm run smoke
 ```
 
-所有核心 AI、分析、训练和分享逻辑仍在浏览器本地运行。
+所有核心 AI、搜索、反事实分析、训练和分享逻辑仍在浏览器本地运行，不需要 API Key 或后端服务器。
 
 ## 规则说明
 

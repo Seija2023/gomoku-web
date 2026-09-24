@@ -122,7 +122,17 @@
       );
     }
 
-    chooseMove(board, moves, difficulty, player, persona, rng = Math.random) {
+    chooseMove(board, moves, difficulty, player, persona, rng = Math.random, searchOptions = {}) {
+      if (G.AISearch?.chooseMoveAdvanced) {
+        return G.AISearch.chooseMoveAdvanced(
+          board,
+          moves,
+          difficulty,
+          player,
+          persona,
+          searchOptions,
+        );
+      }
       const ranked = this.ranked(board, moves, player, persona);
       return G.AI.chooseMoveDetailed(board, moves, difficulty, player, persona, rng, ranked);
     }
