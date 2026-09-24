@@ -40,3 +40,15 @@
   .result-actions { grid-template-columns: 1fr; }
   .move-list { grid-template-columns: 1fr 1fr; }
 }
+
+@media (max-width: 720px) {
+  .training-card { grid-template-columns: 1fr; }
+  .training-actions { width: 100%; }
+  .training-actions button { flex: 1; }
+}
+
+@media (max-width: 620px) {
+  .smart-actions { grid-template-columns: 1fr; }
+  .context-bar { align-items: flex-start; flex-direction: column; }
+  .context-bar button { width: 100%; }
+}
