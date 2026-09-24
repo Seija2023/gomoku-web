@@ -7,7 +7,7 @@ const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'u
 const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.4.0 棋局实验室与控制器架构模块', () => {
+test('入口文件加载 v2.5.0 Local AI 2.0 与棋局实验室模块', () => {
   for (const path of [
     'js/app/render-flags.js',
     'js/game/position.js',
@@ -17,6 +17,7 @@ test('入口文件加载 v2.4.0 棋局实验室与控制器架构模块', () => 
     'js/services/counterfactual-service.js',
     'js/services/request-gate.js',
     'js/services/ai-client.js',
+    'js/services/worker-ai-client.js',
     'js/services/derived-service.js',
     'js/ai/search.js',
     'js/analysis/advantage.js',
@@ -54,7 +55,8 @@ test('页面保留 v2.3 核心 PC 与手机控件', () => {
     'reviewChallengeBtn','trainingStats','openingLibrary','branchBar','trainingCard',
     'positionEditorBtn','positionEditorCard','editorToolBlack','editorToolWhite',
     'editorToolErase','editorNextPlayer','editorCompareBtn','counterfactualCard',
-    'counterfactualUserMove','counterfactualAiMove','editorStartPvpBtn','editorStartAiBtn'
+    'counterfactualUserMove','counterfactualAiMove','editorStartPvpBtn','editorStartAiBtn',
+    'aiSearchStatus'
   ]) assert.match(index, new RegExp(`id="${id}"`));
 });
 
@@ -95,6 +97,7 @@ test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => 
   assert.match(source, /new G\.Controllers\.TrainingController/);
   assert.match(source, /new G\.Controllers\.ShareController/);
   assert.match(source, /new G\.Controllers\.PositionEditorController/);
+  assert.match(source, /G\.Services\.createAIClient/);
 });
 
 test('CI 包含短浏览器 Smoke Test', async () => {
@@ -102,4 +105,22 @@ test('CI 包含短浏览器 Smoke Test', async () => {
   const pkg = await readFile(new URL('../package.json', import.meta.url), 'utf8');
   assert.match(workflow, /npm run smoke/);
   assert.match(pkg, /"smoke":\s*"node scripts\/smoke-browser\.mjs"/);
+});
+
+
+test('Standalone 构建会内嵌 Blob Worker 源码', async () => {
+  const build = await readFile(new URL('../scripts/build-standalone.mjs', import.meta.url), 'utf8');
+  assert.match(build, /GOMOKU_WORKER_SOURCE/);
+  assert.match(build, /worker-runtime\.js/);
+  assert.match(build, /new Blob/);
+});
+
+test('Local AI 2.0 包含迭代加深、置换表与 Worker fallback', async () => {
+  const search = await readFile(new URL('../js/ai/search.js', import.meta.url), 'utf8');
+  const workerClient = await readFile(new URL('../js/services/worker-ai-client.js', import.meta.url), 'utf8');
+  assert.match(search, /iterativeSearch/);
+  assert.match(search, /new Map\(\)/);
+  assert.match(search, /tacticalCandidates/);
+  assert.match(workerClient, /MainThreadAIClient/);
+  assert.match(workerClient, /restartWorker/);
 });
