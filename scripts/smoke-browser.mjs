@@ -231,6 +231,66 @@ try {
   const resumedVariation = await cdp.evaluate("(() => ({ restored: document.getElementById('variationTreeList').textContent.includes('Smoke 分支'), nodes: document.querySelectorAll('.variation-node').length }))()");
   await cdp.evaluate("Gomoku.App.exitVariation()");
 
+  await cdp.evaluate(`(() => {
+    Gomoku.Storage.clearCurrent();
+    const B = Gomoku.Config.BLACK;
+    const W = Gomoku.Config.WHITE;
+    Gomoku.Storage.saveFinished({
+      id: 'smoke-defense',
+      finishedAt: '2026-09-23T12:00:00Z',
+      mode: Gomoku.Config.MODES.AI,
+      winner: W,
+      moves: [
+        {r:8,c:3,player:B},{r:8,c:4,player:W},
+        {r:0,c:0,player:B},{r:8,c:5,player:W},
+        {r:0,c:2,player:B},{r:8,c:6,player:W},
+        {r:0,c:4,player:B},{r:8,c:7,player:W},
+        {r:1,c:1,player:B}
+      ]
+    });
+    Gomoku.Storage.saveFinished({
+      id: 'smoke-win-miss',
+      finishedAt: '2026-09-24T12:00:00Z',
+      mode: Gomoku.Config.MODES.AI,
+      winner: W,
+      moves: [
+        {r:7,c:3,player:B},{r:0,c:0,player:W},
+        {r:7,c:4,player:B},{r:0,c:2,player:W},
+        {r:7,c:5,player:B},{r:0,c:4,player:W},
+        {r:7,c:6,player:B},{r:0,c:6,player:W},
+        {r:1,c:1,player:B}
+      ]
+    });
+    location.reload();
+  })()`);
+  await cdp.waitFor('window.Gomoku?.App && document.querySelectorAll(".cell").length === 225', 7000);
+  await cdp.waitFor("document.querySelectorAll('.mistake-book-card').length >= 2 && Number(document.getElementById('mistakeTrainingCount').textContent) >= 2", 7000);
+
+  const adaptiveDashboard = await cdp.evaluate("(() => ({ mistakes: document.querySelectorAll('.mistake-book-card').length, weaknessRows: document.querySelectorAll('.weakness-row').length, mistakeCount: Number(document.getElementById('mistakeTrainingCount').textContent), profile: document.getElementById('profileContent').textContent }))()");
+
+  const adaptivePuzzle = await cdp.evaluate("(() => { const button = document.querySelector('[data-mistake-puzzle]'); const id = button.dataset.mistakePuzzle; const records = Gomoku.Storage.listHistory(); const mistakes = Gomoku.MistakeMiner.mine(records); const puzzles = Gomoku.Puzzles.generate(records, Gomoku.Config.MAX_TRAINING_PUZZLES, mistakes); const puzzle = puzzles.find(item => item.id === id); if (!puzzle) throw new Error('Adaptive smoke puzzle not found'); button.click(); return { id, expected: puzzle.expected, category: puzzle.category, sourceKind: puzzle.sourceKind }; })()");
+  await cdp.waitFor("!document.getElementById('trainingCard').classList.contains('hidden')");
+  await cdp.evaluate("document.querySelector('[data-row=\"' + " + "adaptivePuzzle.expected.r" + " + '\"][data-col=\"' + " + "adaptivePuzzle.expected.c" + " + '\"]').click()");
+  await cdp.waitFor("document.getElementById('trainingFeedback').dataset.grade === 'best'");
+  const adaptiveAnswer = await cdp.evaluate("(() => ({ grade: document.getElementById('trainingFeedback').dataset.grade, meta: document.getElementById('trainingMeta').textContent, detail: document.getElementById('trainingDetail').textContent, variationEnabled: !document.getElementById('trainingVariationBtn').disabled }))()");
+
+  await cdp.evaluate("document.getElementById('trainingVariationBtn').click()");
+  await cdp.waitFor("!document.getElementById('variationCard').classList.contains('hidden') && document.getElementById('trainingCard').classList.contains('hidden')");
+  const trainingVariation = await cdp.evaluate("(() => ({ label: document.getElementById('variationSummary').textContent, active: !document.getElementById('variationCard').classList.contains('hidden') }))()");
+  await cdp.evaluate("Gomoku.App.exitVariation()");
+  await cdp.waitFor("!document.getElementById('trainingCard').classList.contains('hidden') && document.getElementById('trainingFeedback').dataset.grade === 'best'");
+
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await new Promise(resolve => setTimeout(resolve, 120));
+  const mobileTraining = await cdp.evaluate("(() => { const card = document.getElementById('trainingCard'); const variationButton = document.getElementById('trainingVariationBtn'); return { viewport: innerWidth, noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2, columns: getComputedStyle(card).gridTemplateColumns.split(' ').length, variationButtonHeight: variationButton.getBoundingClientRect().height }; })()");
+  await cdp.send('Emulation.clearDeviceMetricsOverride');
+
+  await cdp.evaluate("document.getElementById('trainingNextBtn').click()");
+  await cdp.waitFor("document.getElementById('trainingPrompt').textContent.includes('完成')");
+  const adaptiveSession = await cdp.evaluate("(() => ({ donePrompt: document.getElementById('trainingPrompt').textContent, summary: document.getElementById('trainingFeedback').textContent, nextLabel: document.getElementById('trainingNextBtn').textContent }))()");
+  await cdp.evaluate("document.getElementById('trainingNextBtn').click()");
+  await cdp.waitFor("document.getElementById('trainingCard').classList.contains('hidden')");
+
   await cdp.evaluate("(() => { Gomoku.App.setMode('pvp'); const sequence = [[7,3],[0,0],[7,4],[0,2],[7,5],[0,4],[7,6],[0,6],[7,7]]; for (const pair of sequence) { const r = pair[0], c = pair[1]; document.querySelector('[data-row=\"' + r + '\"][data-col=\"' + c + '\"]').click(); } })()");
   await cdp.waitFor('Gomoku.App.getGame().gameOver === true');
 
@@ -268,6 +328,12 @@ try {
     searchInspectorRendered: expandedVariation.inspectorVisible && expandedVariation.depthRows > 0 && expandedVariation.stability.includes('稳定度'),
     variationNamedFavorite: namedVariation.favorite && namedVariation.named,
     variationPersistence: resumedVariation.restored && resumedVariation.nodes >= 3,
+    adaptiveMistakeBook: adaptiveDashboard.mistakes >= 2 && adaptiveDashboard.weaknessRows >= 1 && adaptiveDashboard.mistakeCount >= 2,
+    adaptiveProfile: adaptiveDashboard.profile.includes('首要弱点') && adaptiveDashboard.profile.includes('自动识别错误'),
+    adaptiveBestAnswer: adaptivePuzzle.sourceKind === 'mistake' && adaptiveAnswer.grade === 'best' && adaptiveAnswer.variationEnabled && adaptiveAnswer.meta.includes('个人错题'),
+    trainingVariationRoundTrip: trainingVariation.active && trainingVariation.label.includes('训练'),
+    adaptiveFiniteSession: adaptiveSession.donePrompt.includes('完成') && adaptiveSession.summary.includes('最佳') && adaptiveSession.nextLabel.includes('返回棋局'),
+    mobileAdaptiveLayout: mobileTraining.viewport === 390 && mobileTraining.noHorizontalOverflow && mobileTraining.columns === 1 && mobileTraining.variationButtonHeight >= 44,
     standaloneBlobWorker: standaloneState.embedded && standaloneState.mode === 'worker',
     standaloneAiResponded: standaloneState.moves >= 2 && standaloneState.progress?.nodes > 0,
     positionEditorPlaced: editorState.pieces === 2 && editorState.cardVisible,
@@ -286,7 +352,7 @@ try {
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
-  console.log(JSON.stringify({ checks, initial, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
+  console.log(JSON.stringify({ checks, initial, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, adaptiveDashboard, adaptivePuzzle, adaptiveAnswer, trainingVariation, mobileTraining, adaptiveSession, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
 
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {
