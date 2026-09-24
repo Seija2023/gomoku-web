@@ -46,7 +46,7 @@
     }
 
     const opponentWins = tacticalWinningMoves(board, ranked, opponent);
-    if (opponentWins.length && !G.AI.isWinningMove(board, actual.r, actual.c, opponent)) {
+    if (opponentWins.length === 1 && !G.AI.isWinningMove(board, actual.r, actual.c, opponent)) {
       return { type: 'FORCED_DEFENSE_MISS', expected: opponentWins[0], alternatives: opponentWins };
     }
 
