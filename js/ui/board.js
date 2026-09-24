@@ -21,6 +21,8 @@
       this.holdTimer = null;
       this.activePointerId = null;
       this.previewKey = null;
+      this.pinnedGhost = null;
+      this.pinnedGhostKey = null;
       this.lastPreviewAt = 0;
       this.suppressClickUntil = 0;
       this.cells = Array(SIZE * SIZE);
@@ -106,7 +108,7 @@
         if (!cell) return;
         const relatedCell = event.relatedTarget?.closest?.('.cell');
         if (relatedCell === cell) return;
-        this.clearGhost();
+        this.clearTransientGhost();
       });
 
       this.element.addEventListener('pointerdown', event => {
@@ -137,15 +139,30 @@
       this.holdTimer = null;
     }
 
-    clearGhost() {
+    resetGhostLayer() {
       if (this.ghostLayer) this.ghostLayer.replaceChildren();
       this.previewKey = null;
     }
 
-    showGhostLine(preview) {
-      this.clearGhost();
+    clearGhost() {
+      this.pinnedGhost = null;
+      this.pinnedGhostKey = null;
+      this.resetGhostLayer();
+    }
+
+    clearTransientGhost() {
+      if (this.pinnedGhost) {
+        this.renderGhostLine(this.pinnedGhost, true);
+        return;
+      }
+      this.resetGhostLayer();
+    }
+
+    renderGhostLine(preview, pinned = false) {
+      this.resetGhostLayer();
       const line = preview?.line || [];
       if (!line.length) return;
+      this.ghostLayer.classList.toggle('pinned', Boolean(pinned));
 
       if (line.length > 1) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -170,8 +187,33 @@
       });
     }
 
+    showGhostLine(preview) {
+      if (this.pinnedGhost) return;
+      this.renderGhostLine(preview, false);
+    }
+
+    pinGhostLine(preview, key) {
+      const line = preview?.line || [];
+      if (!line.length) return false;
+      if (this.pinnedGhostKey === key) {
+        this.clearGhost();
+        return false;
+      }
+      this.pinnedGhost = {
+        ...preview,
+        line: line.map(point => ({ ...point })),
+      };
+      this.pinnedGhostKey = key || line.map(point => `${point.r},${point.c}`).join('|');
+      this.renderGhostLine(this.pinnedGhost, true);
+      return true;
+    }
+
+    pinnedKey() {
+      return this.pinnedGhostKey;
+    }
+
     previewAt(r, c) {
-      if (!this.ghostEnabled || !this.onCellPreview) return;
+      if (!this.ghostEnabled || !this.onCellPreview || this.pinnedGhost) return;
       const key = `${r},${c}`;
       if (key === this.previewKey) return;
       const now = Date.now();
@@ -209,7 +251,7 @@
       if (this.longPressActive) {
         this.suppressClickUntil = Date.now() + 450;
         this.longPressActive = false;
-        this.clearGhost();
+        this.clearTransientGhost();
       }
       try {
         if (this.element.hasPointerCapture?.(event.pointerId)) this.element.releasePointerCapture(event.pointerId);
@@ -279,7 +321,8 @@
       this.ghostEnabled = Boolean(ghostEnabled);
       this.element.classList.toggle('ghost-enabled', this.ghostEnabled);
       this.clearHoldTimer();
-      this.clearGhost();
+      if (!this.ghostEnabled) this.clearGhost();
+      else if (!this.pinnedGhost) this.resetGhostLayer();
 
       const reviewMode = Number.isInteger(reviewIndex);
       const moves = movesOverride || (reviewMode ? game.moves.slice(0, reviewIndex) : game.moves);
@@ -318,7 +361,12 @@
     }
 
     stats() {
-      return { ...this.metrics, heatMarkers: this.heatMarkers.size };
+      return {
+        ...this.metrics,
+        heatMarkers: this.heatMarkers.size,
+        ghostPinned: Boolean(this.pinnedGhost),
+        ghostPinnedKey: this.pinnedGhostKey,
+      };
     }
   }
 
