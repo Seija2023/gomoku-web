@@ -246,7 +246,7 @@ try {
     replayAdvanced: replayAfter.pieces > replayBefore.pieces,
     replayDidNotScroll: replayBefore.scrollY === 0 && replayAfter.scrollY === 0,
     reviewStaticDomReused: replayAfter.reviewListBuilds === 1,
-    noRuntimeExceptions: cdp.exceptions.length === 0,
+    noRuntimeExceptions: cdp.exceptions.length === 0 && standaloneCdp.exceptions.length === 0,
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
