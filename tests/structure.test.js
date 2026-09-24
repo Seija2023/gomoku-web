@@ -7,19 +7,25 @@ const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'u
 const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.3.2 调度优化模块', () => {
+test('入口文件加载 v2.3.3 控制器架构模块', () => {
   for (const path of [
     'js/app/render-flags.js',
     'js/game/position.js',
     'js/storage/migrations.js',
     'js/services/analysis-service.js',
     'js/services/request-gate.js',
+    'js/services/ai-client.js',
     'js/services/derived-service.js',
     'js/ai/search.js',
     'js/analysis/advantage.js',
     'js/training/scheduler.js',
     'js/share/codec.js',
     'js/ui/insights.js',
+    'js/controllers/review-controller.js',
+    'js/controllers/training-controller.js',
+    'js/controllers/share-controller.js',
+    'js/controllers/game-controller.js',
+    'js/controllers/branch-controller.js',
     'js/main.js',
   ]) assert.match(index, new RegExp(path.replace(/[./]/g, '\\$&')));
 });
@@ -70,4 +76,22 @@ test('主控制器支持按区域刷新而不是只能全量 refresh', async () 
   assert.match(source, /RenderFlags\.BOARD/);
   assert.match(source, /RenderFlags\.ANALYSIS/);
   assert.match(source, /refreshTrainingDerived/);
+});
+
+test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => {
+  const source = await readFile(new URL('../js/main.js', import.meta.url), 'utf8');
+  const lines = source.split('\n').length;
+  assert.ok(lines < 650, `main.js should stay below 650 lines, got ${lines}`);
+  assert.match(source, /new G\.Controllers\.GameController/);
+  assert.match(source, /new G\.Controllers\.ReviewController/);
+  assert.match(source, /new G\.Controllers\.BranchController/);
+  assert.match(source, /new G\.Controllers\.TrainingController/);
+  assert.match(source, /new G\.Controllers\.ShareController/);
+});
+
+test('CI 包含短浏览器 Smoke Test', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const pkg = await readFile(new URL('../package.json', import.meta.url), 'utf8');
+  assert.match(workflow, /npm run smoke/);
+  assert.match(pkg, /"smoke":\s*"node scripts\/smoke-browser\.mjs"/);
 });
