@@ -314,11 +314,7 @@
     }, `第 ${review.index} 手挑战`);
   }
 
-  workspaceView.bind(workspace => {
-    if (workspaceManager.select(workspace)) {
-      refresh(RenderFlags.STATUS | RenderFlags.SETTINGS | RenderFlags.ANALYSIS | RenderFlags.OVERLAYS);
-    }
-  });
+  workspaceView.bind(workspace => workspaceManager.select(workspace));
   panel.bind({
     undo,
     toggleSound,
