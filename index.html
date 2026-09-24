@@ -38,6 +38,22 @@
       <button id="shareNoticeClose" type="button" aria-label="关闭提示">×</button>
     </div>
 
+    <nav id="workspaceNav" class="workspace-nav" aria-label="工作区" role="tablist">
+      <button class="workspace-tab active" type="button" role="tab" aria-selected="true" data-workspace-target="game">
+        <span>对局</span><small>Play</small>
+      </button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="analysis">
+        <span>分析</span><small>Analyze</small>
+      </button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="training">
+        <span>训练</span><small>Train</small>
+      </button>
+      <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="lab">
+        <span>实验室</span><small>Lab</small>
+      </button>
+      <span id="workspaceContext" class="workspace-context hidden"></span>
+    </nav>
+
     <section class="game-layout">
       <div class="board-column">
         <div id="branchBar" class="context-bar hidden">
@@ -222,8 +238,8 @@
         </section>
       </div>
 
-      <aside class="panel">
-        <div class="panel-section">
+      <aside class="panel workspace-panel">
+        <div class="panel-section workspace-section workspace-visible" data-workspaces="game">
           <h2>游戏模式</h2>
           <div class="mode-switch" role="group" aria-label="游戏模式">
             <button id="pvpModeBtn" class="mode-btn active" type="button" aria-pressed="true">双人对战</button>
@@ -232,16 +248,16 @@
           <p id="modeHint" class="helper-text">两名玩家在同一设备轮流落子。</p>
         </div>
 
-        <div class="panel-section">
-          <h2>棋局实验室</h2>
+        <div class="panel-section workspace-section" data-workspaces="lab">
+          <div class="workspace-section-head"><div><span class="workspace-kicker">LAB</span><h2>棋局实验室</h2></div><span>构造与探索局面</span></div>
           <button id="positionEditorBtn" class="wide-button" type="button">自由摆局 · Position Editor</button>
           <button id="variationStartBtn" class="wide-button lab-secondary" type="button">变化树实验室 · Variation Tree</button>
           <button id="variationResumeBtn" class="wide-button lab-secondary" type="button">继续上次变化树</button>
           <p class="helper-text">自由摆局用于构造局面；变化树用于保存多个候选分支、AI 主变化和手动尝试，并可随时返回任意节点继续分析。</p>
         </div>
 
-        <div class="panel-section">
-          <h2>智能 AI</h2>
+        <div class="panel-section workspace-section" data-workspaces="analysis">
+          <div class="workspace-section-head"><div><span class="workspace-kicker">ANALYSIS</span><h2>AI 分析中心</h2></div><span>推荐、变化与搜索</span></div>
           <div class="control-grid">
             <label>
               <span class="control-label">难度</span>
@@ -275,14 +291,17 @@
           <p class="helper-text ghost-help">PC：悬停空点预览。手机：长按空点约 0.36 秒后拖动预览，松手不落子。</p>
           <div id="aiExplain" class="ai-explain">AI落子后，这里会显示它为什么选择该位置。</div>
           <div id="aiSearchStatus" class="ai-search-status hidden" aria-live="polite"></div>
-          <section id="searchInspector" class="search-inspector hidden">
+          <details id="searchInspector" class="search-inspector workspace-disclosure hidden">
+            <summary>
+              <span>高级搜索详情</span>
+              <small id="searchStability" class="analysis-note"></small>
+            </summary>
             <div class="search-inspector-head">
               <strong>AI Search Inspector</strong>
-              <span id="searchStability" class="analysis-note"></span>
             </div>
             <div id="searchInspectorMetrics" class="search-inspector-metrics"></div>
             <div id="searchDepthHistory" class="search-depth-history"></div>
-          </section>
+          </details>
 
           <div class="candidate-section">
             <div class="candidate-heading">
@@ -293,7 +312,7 @@
           </div>
         </div>
 
-        <div class="panel-section">
+        <div class="panel-section workspace-section workspace-visible" data-workspaces="game">
           <h2>对局信息</h2>
           <div class="stats">
             <div><span id="blackLabel">黑棋</span><strong id="blackCount">0</strong></div>
@@ -302,7 +321,7 @@
           </div>
         </div>
 
-        <div class="panel-section">
+        <div class="panel-section workspace-section workspace-visible" data-workspaces="game">
           <h2>操作</h2>
           <div class="actions">
             <button id="undoBtn" type="button">悔棋</button>
@@ -311,8 +330,8 @@
           </div>
         </div>
 
-        <div class="panel-section">
-          <h2>自适应训练</h2>
+        <div class="panel-section workspace-section" data-workspaces="training">
+          <div class="workspace-section-head"><div><span class="workspace-kicker">TRAIN</span><h2>自适应训练</h2></div><span>按弱点安排练习</span></div>
           <button id="trainingBtn" class="wide-button" type="button">
             今日自适应训练 <span class="count-badge" id="trainingCount">0</span>
           </button>
@@ -320,28 +339,40 @@
             错题强化 <span class="count-badge" id="mistakeTrainingCount">0</span>
           </button>
           <div id="trainingStats" class="mini-stats"></div>
-          <div id="trainingWeakness" class="training-weakness"></div>
-          <div id="mistakeBook" class="mistake-book"></div>
-          <div id="profileContent" class="profile-content"></div>
+          <details class="workspace-disclosure">
+            <summary><span>近期弱点与个人错题</span><small>展开详情</small></summary>
+            <div id="trainingWeakness" class="training-weakness"></div>
+            <div id="mistakeBook" class="mistake-book"></div>
+          </details>
+          <details class="workspace-disclosure">
+            <summary><span>玩家画像</span><small>统计详情</small></summary>
+            <div id="profileContent" class="profile-content"></div>
+          </details>
         </div>
 
-        <div class="panel-section">
-          <h2>个人开局库</h2>
-          <div id="openingLibrary" class="opening-library">
+        <div class="panel-section workspace-section" data-workspaces="lab">
+          <details class="workspace-disclosure">
+            <summary><span>个人开局库</span><small>历史开局统计</small></summary>
+            <div id="openingLibrary" class="opening-library">
             <p class="helper-text">完成更多棋局后会自动整理常用开局。</p>
-          </div>
+            </div>
+          </details>
         </div>
 
-        <div class="panel-section">
-          <h2>历史对局</h2>
-          <div id="historyList" class="history-list">
+        <div class="panel-section workspace-section workspace-visible" data-workspaces="game">
+          <details class="workspace-disclosure">
+            <summary><span>历史对局</span><small>最近 20 局</small></summary>
+            <div id="historyList" class="history-list">
             <p class="helper-text">完成对局后会在这里保存最近 20 局。</p>
-          </div>
+            </div>
+          </details>
         </div>
 
-        <div class="panel-section rules">
-          <h2>规则</h2>
-          <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。当前版本采用基础自由五子棋规则，不含禁手。</p>
+        <div class="panel-section rules workspace-section workspace-visible" data-workspaces="game">
+          <details class="workspace-disclosure">
+            <summary><span>规则</span><small>自由五子棋</small></summary>
+              <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。当前版本采用基础自由五子棋规则，不含禁手。</p>
+          </details>
         </div>
       </aside>
     </section>
@@ -350,6 +381,7 @@
   <script src="js/config.js" defer></script>
   <script src="js/core/rules.js" defer></script>
   <script src="js/app/render-flags.js" defer></script>
+  <script src="js/app/workspace-manager.js" defer></script>
   <script src="js/game/position.js" defer></script>
   <script src="js/game/editable-position.js" defer></script>
   <script src="js/ai/evaluator.js" defer></script>
@@ -380,6 +412,7 @@
   <script src="js/share/codec.js" defer></script>
   <script src="js/audio/audio.js" defer></script>
   <script src="js/ui/board.js" defer></script>
+  <script src="js/ui/workspace.js" defer></script>
   <script src="js/ui/panel.js" defer></script>
   <script src="js/ui/review.js" defer></script>
   <script src="js/ui/advantage-chart.js" defer></script>
@@ -393,6 +426,7 @@
   <script src="js/controllers/branch-controller.js" defer></script>
   <script src="js/controllers/position-editor-controller.js" defer></script>
   <script src="js/controllers/variation-controller.js" defer></script>
+  <script src="js/app/render-coordinator.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>
