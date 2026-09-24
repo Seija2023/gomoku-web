@@ -4,14 +4,14 @@
   const { RenderFlags, Activities } = G.AppCore;
 
   const game = new G.Game.Game();
-  const audio = new G.Audio.AudioManager();
+  const settings = G.Storage.loadSettings();
+  const audio = new G.Audio.AudioManager(settings.sound);
   const panel = new G.UI.PanelView(document);
   const reviewView = new G.UI.ReviewView(document);
   const insights = new G.UI.InsightsView(document);
   const positionEditorView = new G.UI.PositionEditorView(document);
   const variationView = new G.UI.VariationTreeView(document);
   const workspaceView = new G.UI.WorkspaceView(document);
-  const settings = G.Storage.loadSettings();
 
   let renderCoordinator = null;
   function refresh(mask = RenderFlags.ALL) {
@@ -24,7 +24,11 @@
   const aiClient = G.Services.createAIClient
     ? G.Services.createAIClient(analysisService, requestGate)
     : new G.Services.MainThreadAIClient(analysisService, requestGate);
-  const shareController = new G.Controllers.ShareController(insights);
+  const shareAdapter = new G.Platform.ShareAdapter();
+  const shareController = new G.Controllers.ShareController({
+    insights,
+    adapter: shareAdapter,
+  });
 
   let availablePuzzles = [];
   let availableMistakes = [];
@@ -241,7 +245,8 @@
   }
 
   function toggleSound() {
-    audio.toggle();
+    settings.sound = audio.toggle();
+    saveSettings();
     refresh(RenderFlags.STATUS);
   }
 

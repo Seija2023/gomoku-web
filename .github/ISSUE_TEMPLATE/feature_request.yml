@@ -1,0 +1,37 @@
+name: Feature request
+description: 提议新功能或现有工作流改进
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: 使用场景
+      description: 想解决什么实际问题？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 描述期望的交互、功能或架构方向
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 主要领域
+      options:
+        - 对局
+        - AI / 搜索
+        - 分析 / 复盘
+        - 训练
+        - 实验室
+        - UI / 移动端
+        - 工程 / 性能
+        - 其他
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: 其他考虑
+      description: 兼容性、性能、移动端或已有功能关系

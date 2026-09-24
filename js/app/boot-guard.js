@@ -11,6 +11,7 @@
     ['Controllers.TrainingController', () => G.Controllers?.TrainingController],
     ['Controllers.PositionEditorController', () => G.Controllers?.PositionEditorController],
     ['Controllers.VariationController', () => G.Controllers?.VariationController],
+    ['Platform.ShareAdapter', () => G.Platform?.ShareAdapter],
     ['UI.BoardView', () => G.UI?.BoardView],
     ['UI.WorkspaceView', () => G.UI?.WorkspaceView],
     ['AppCore.RenderCoordinator', () => G.AppCore?.RenderCoordinator],

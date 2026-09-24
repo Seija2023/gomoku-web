@@ -1,154 +1,158 @@
-# 五子棋 Gomoku Web
+# Gomoku Web
 
-一个无需后端即可运行的 15×15 五子棋网页小游戏。支持本地 AI、复盘、局势分析、分支推演和训练，核心功能无需 API。
+A local-first 15×15 Gomoku game, analysis lab and adaptive training workspace built with HTML, CSS and JavaScript.
 
-在线版：
+**Current version: v2.8.1 — Engineering Governance**
+
+Live site: https://seija2023.github.io/gomoku-web/
+
+## Highlights
+
+- Local PVP and AI play
+- Worker-based Local AI 2.0 with main-thread fallback
+- Iterative Deepening, Alpha-Beta, tactical priority and Transposition Table
+- Candidate A/B/C, Heatmap, Ghost Line 2.0 and Search Inspector
+- Position Editor and Counterfactual Analysis
+- Persistent Variation Tree with manual and AI branches
+- Adaptive Training generated from personal game history
+- Mistake Book, weakness tracking and spaced repetition
+- Review timeline, advantage chart, sharing and challenge links
+- Desktop and mobile workspace navigation
+- Single-file offline Standalone build
+- No backend, cloud AI API or API key required
+
+## Workspaces
+
+The UI is organized into four focused workspaces:
+
+| Workspace | Purpose |
+| --- | --- |
+| 对局 | PVP / AI, undo, restart, history |
+| 分析 | candidates, Ghost Line, Heatmap, AI explanation, Search Inspector |
+| 训练 | adaptive sessions, mistake training, weakness and profile |
+| 实验室 | Position Editor, Variation Tree, opening history |
+
+Special activities such as review, training and variation analysis are coordinated by the application Workspace layer to prevent conflicting modes.
+
+## Architecture
+
+The project uses explicit layers rather than a single page script:
 
 ```text
-https://seija2023.github.io/gomoku-web/
+UI
+ ↓
+Controller / Workflow
+ ↓
+Service
+ ↓
+Domain / Analysis / AI
+ ↓
+Core
 ```
 
-当前工程版本：**v2.8.0（Workspace & UX 2.0）**。
+Key application components:
 
-## v2.8.0 重点
+- `WorkspaceManager` — unified activity / workspace state
+- `SessionWorkflow` — cross-controller session transitions
+- `RenderCoordinator` — display position and region rendering decisions
+- `AIClient` — stable Worker / main-thread AI boundary
+- `DerivedService` — cached training / profile / opening derivations
+- `StorageMigrations` — forward-compatible localStorage schema
 
-这一版暂停继续堆大型功能，集中解决 v2.4～v2.7 连续扩展后出现的界面密度和应用编排复杂度问题。核心 AI、Variation Tree、Adaptive Training 与存储模型保持兼容。
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design.
 
-- 新增统一 WorkspaceManager：GAME / REVIEW / BRANCH / TRAINING / POSITION_EDITOR / VARIATION 不再由 main.js 到处检查多个 state.active
-- 主界面收敛为四个工作区：对局 / 分析 / 训练 / 实验室
-- 特殊模式会自动切到对应工作区，并临时锁定其它工作区；退出后恢复用户原来的工作区
-- 工作区选择写入本地设置，刷新页面后继续保持
-- 新增 RenderCoordinator，集中负责当前展示局面、交互锁定、分析玩家、Ghost Preview 和区域刷新
-- 新增 SessionWorkflow，统一处理重开、模式切换、进入/退出复盘、挑战和 Position Editor
-- main.js 从约 772 行压缩到约 444 行，直接 state.active 判断从 31 次降为 0
-- AI 分析中心保留推荐、Candidate A/B/C、Ghost Line、Heatmap 和解释；Search Inspector 改为默认折叠的高级详情
-- 自适应训练默认突出今日训练与统计，近期弱点/错题本、玩家画像改为渐进展开
-- 开局库、历史对局和规则改为按需展开，默认界面不再一次展示全部信息
-- PC 使用顶部四工作区导航；手机使用固定底部导航，核心触控目标保持至少 44px
-- Candidate A/B/C 在桌面侧栏改为纵向卡片，减少窄列挤压；手机继续横向滑动
-- 新增 Boot Guard：经典脚本顺序被破坏时，会在启动阶段直接报告缺失模块，而不是在运行中随机 undefined
-- 保留现有 classic-script + Worker + Standalone Blob Worker 架构，暂不进行高风险的全面 ESM 重写
-- Chrome Smoke 按真实 UI 路径切换工作区，并验证工作区恢复、刷新持久化、特殊模式锁定和 390px 手机底部导航
+## Repository Layout
 
-## v2.7.0 Adaptive Training
+```text
+.
+├─ .github/       CI and contribution templates
+├─ css/           layout, board, components and responsive styles
+├─ docs/          architecture, usage, development and release docs
+├─ js/
+│  ├─ app/
+│  ├─ core/
+│  ├─ game/
+│  ├─ ai/
+│  ├─ analysis/
+│  ├─ services/
+│  ├─ controllers/
+│  ├─ training/
+│  ├─ lab/
+│  ├─ storage/
+│  ├─ platform/
+│  └─ ui/
+├─ scripts/       build, architecture lint and browser smoke
+├─ tests/         Node test suite
+├─ index.html
+└─ package.json
+```
 
-这一版把历史棋局、Local AI 2.0、Counterfactual 和 Variation Tree 串成真正的个人自适应训练系统，仍然完全本地运行。
+Generated `dist/` output is intentionally not tracked.
 
-- 新增 Mistake Miner：扫描最近人机历史，自动识别高可信个人错误
-- 建立统一错误分类：错过直接胜、漏防强制威胁、战术机会漏算、防守优先级不足、棋形效率损失
-- 强制防守题只在存在单一可处理直接威胁时生成，避免把已形成双重必胜威胁的局面伪装成“唯一答案”
-- 自动错题带来源棋局、原实战落子、推荐手、严重度、评分损失和本地题目可信度
-- 训练答案从“对 / 错”升级为“最佳 / 可接受次优 / 错误”，合理候选不会被武断判错
-- 新增 Adaptive Planner：综合到期时间、近期错误频率、答错次数、严重度、可信度和掌握状态安排每日训练
-- 新增个人错题本，可从最近高可信错误直接单题重练
-- 新增近期弱点面板，按错误类型展示出现次数和掌握度
-- 一轮训练默认最多 8 题，不再无限循环
-- 间隔复习根据最佳、次优、错误采用不同晋级节奏
-- 训练题答完后可直接进入 Variation Tree 深挖原局面，退出后返回同一道训练题
-- Player Profile 加入自动识别错误、高优先级错误、平均评分损失和首要弱点
-- 派生层缓存错误挖掘结果，历史没有变化时不会重复扫描
-- Chrome Smoke 覆盖自动错题生成、错题本答题、训练→变化树→训练往返、有限训练会话和 390×844 手机布局
+## Development
 
-## v2.6.0 Variation Lab
+Requires Node.js 22 or newer.
 
-这一版把 v2.4 的棋局实验室和 v2.5 的深度搜索连接成可持续探索的多分支分析工作台。
-
-- 新增持久化 Variation Tree：同一局面可保存多个手动或 AI 分支，不再覆盖原来的假设线
-- 复盘中的“从此变招”升级为“变化树分析”，退出后可回到原复盘位置
-- 当前对局也可直接进入变化树实验室，原对局不会被修改
-- 变化节点支持命名、收藏、父节点 / 根节点导航和删除子树
-- AI 可一次扩展 A/B/C 多个候选，并把最佳 Principal Variation 继续写入树中
-- 变化树自动保存到 localStorage，可退出后继续上次分析
-- Ghost Line 2.0：候选卡可以锁定变化线，PC / 手机都不依赖 hover 才能保留预览
-- Ghost Line / 候选变化线最多延伸到 7 ply
-- 新增 AI Search Inspector：记录每一层 Iterative Deepening 的推荐手、评分、节点数和耗时
-- 新增“推荐稳定度”，观察最佳手是否在多个搜索深度中保持一致
-- Search Inspector 同时展示缓存命中、战术节点和 Alpha-Beta 剪枝统计
-- 变化树存档加入结构校验，损坏或循环树会被拒绝恢复
-- Chrome Smoke 覆盖 Ghost Line 锁定、手动建树、AI 扩展、命名收藏、退出恢复和 Search Inspector
-
-## v2.5.0 Local AI 2.0
-
-这一版把 v2.4 的棋局实验室建立在更强的纯本地搜索引擎上，核心 AI 仍然不依赖任何外部 API。
-
-- 默认启用 `WorkerAIClient`，重搜索从 UI 主线程迁移到 Web Worker
-- Worker 初始化失败、浏览器限制或运行异常时自动回退 `MainThreadAIClient`
-- 取消 AI 请求会实际终止旧 Worker，避免旧搜索继续占用 CPU
-- 搜索加入 Iterative Deepening、Alpha-Beta 剪枝和按时间预算停止
-- 加入战术候选优先：直接成五、强制封堵、四类强威胁优先展开
-- 加入搜索级 Transposition Table，完整搜索结果可在重复局面复用
-- 简单 / 普通 / 困难使用不同时间预算、最大深度和候选宽度
-- 手机或低核心设备自动收紧计算预算，桌面设备保留更高搜索上限
-- Ghost Line 和候选变化线支持多手连续变化（v2.6 已扩展到 7 ply）
-- Counterfactual Analysis 使用更深搜索比较“你的尝试”和 AI 推荐手
-- AI 面板显示实际搜索深度、节点数、耗时、缓存命中、战术节点和当前推荐
-- GitHub Pages 使用独立 Worker；Standalone 单文件构建内嵌 Blob Worker
-- Chrome Smoke 同时验证普通网页 Worker 与 Standalone Blob Worker
-
-## v2.4.0 棋局实验室
-
-这一版正式进入棋局实验室阶段，在 v2.3.3 的 Controller / Position / AIClient 基础上加入自由摆局，并保持普通对局、复盘、训练和分享逻辑相互隔离。
-
-- 新增 Position Editor：自由摆放黑棋、白棋和擦除棋子
-- 新增本地反事实分析：选择“我的尝试”，与 AI 推荐手比较即时棋形、对手最佳回应和后续建议
-- 反事实结果会在棋盘同时标出两手，并给出规则生成的关键差异说明
-- 可指定任意局面的下一手为黑棋或白棋
-- 可清空棋盘或恢复进入编辑器时的原局面
-- 可从自定义局面直接开始双人对局或本地 AI 对战
-- 可在编辑状态直接打开本地 AI 候选分析
-- 自定义局面使用 board + currentPlayer 表达，不伪造普通棋谱历史
-- AI 候选点改为依据实际棋盘占位生成，支持没有 moves 历史的局面
-- AnalysisService 缓存键改为实际棋盘状态，避免自由摆局缓存碰撞
-- 自定义对局支持未完成局面自动保存与刷新恢复
-- Chrome Smoke Test 新增真实 Position Editor 操作链
-
-## v2.3.3 架构基础
-
-- `main.js` 从约 970 行缩减到约 590 行，游戏、复盘、分支、训练和分享逻辑拆入独立 Controller
-- 新增 `MainThreadAIClient`，Controller 不再直接依赖具体 AI 实现，为 Web Worker 切换预留稳定接口
-- CI 新增依赖零第三方包的短 Chrome Smoke Test，自动验证棋盘、AI回应和复盘不滚屏
-- 保留按区域 Dirty Refresh：棋盘、状态、分析、复盘、覆盖层和设置可独立刷新
-- 自动复盘不再每一步重建完整棋谱、关键点和分析 DOM
-- 历史棋局派生数据加入缓存，训练进度变化只刷新训练统计
-- 新增 RequestGate，旧 AI 请求会自动失效，为未来 Worker/异步 AI 做准备
-- 棋盘继续保持“一次初始化 + 增量更新”
-- 225 个格子的独立事件监听改为棋盘级事件委托
-- 新增统一 `Position` 局面模型与合法棋谱校验
-- 新增 `AnalysisService`，统一缓存候选手、Ghost Line、热力图和优势曲线
-- AI 落子可直接复用已经计算过的候选排名
-- 智能分析面板跳过内容未变化时的重复 DOM 重建
-- 新增 localStorage schema migration，为后续数据格式升级保留迁移入口
-- 分享棋谱增加轮次、重复落点、终局后继续落子和胜者一致性校验
-- 暴露轻量性能诊断：`Gomoku.App.getPerformanceStats()`
-- 保持单文件离线构建、GitHub Pages 和现有本地存档兼容
-
-## 现有功能
-
-- 双人本地对战与人机对战
-- 自由摆局 Position Editor，可指定下一手并从局面继续对弈 / AI 分析
-- “为什么这一步不如推荐手？”本地反事实比较，不依赖外部 API
-- 简单 / 普通 / 困难 Local AI 2.0（Worker + 时间预算 + 迭代加深）
-- 均衡 / 进攻 / 防守 / 冒险 AI 棋风
-- Ghost Line 2.0：PC 悬停、手机长按拖动，并可从候选卡锁定变化线
-- 候选 A/B/C、热力图、可解释 AI、Search Inspector 与推荐稳定度
-- 持久化 Variation Tree：多分支、AI 扩展、命名、收藏、恢复
-- 优势曲线、关键手与变化树复盘
-- 分享棋局 / 挑战局面
-- Adaptive Training：个人错误挖掘、错题本、弱点排序、分级答案、间隔复习
-- 玩家画像、个人开局库
-- 最近 20 局历史、终局悔棋和未完成棋局自动恢复
-- 自动复盘不会主动滚动页面
-
-## 开发检查
+Run the complete quality gate:
 
 ```bash
+npm run check
+```
+
+Or run stages individually:
+
+```bash
+npm run lint
 npm test
 npm run build
 npm run smoke
 ```
 
-所有核心 AI、搜索、反事实分析、训练和分享逻辑仍在浏览器本地运行，不需要 API Key 或后端服务器。
+### Quality gates
 
-## 规则说明
+CI validates:
 
-当前采用基础自由五子棋规则，不实现 Renju 的三三、四四、长连等禁手。
+1. architecture and repository boundaries
+2. Node unit / structure / syntax tests
+3. Standalone build
+4. real Chrome end-to-end smoke
+5. standalone Blob Worker behavior
+6. desktop and 390px mobile critical paths
+
+The architecture lint also prevents generated `dist/` files from being committed and keeps documentation aligned with the package version.
+
+## Standalone
+
+Build a single-file offline version:
+
+```bash
+npm run build
+```
+
+Output:
+
+```text
+dist/gomoku.html
+```
+
+The Standalone embeds application assets and a Blob Worker. CI uploads the generated file as an artifact after successful validation.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Usage](docs/USAGE.md)
+- [Development](docs/DEVELOPMENT.md)
+- [Release Process](docs/RELEASING.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+
+## Data
+
+Game history, settings, training progress and saved variation trees are stored locally in the browser. Clearing site data removes these records.
+
+Current storage schema: **5**.
+
+## Rules
+
+The game currently uses basic freestyle Gomoku rules. Renju forbidden-move rules such as double-three, double-four and overline restrictions are not implemented.

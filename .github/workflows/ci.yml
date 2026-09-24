@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,6 +24,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Architecture lint
+        run: npm run lint
       - name: Run tests
         run: npm test
       - name: Build standalone page
@@ -30,3 +37,4 @@ jobs:
         with:
           name: gomoku-standalone
           path: dist/gomoku.html
+          retention-days: 14

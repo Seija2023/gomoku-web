@@ -9,7 +9,7 @@ const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 
 const responsiveCss = await readFile(new URL('../css/responsive.css', import.meta.url), 'utf8');
 const componentsCss = await readFile(new URL('../css/components.css', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.8.0 Workspace & UX 2.0 模块', () => {
+test('入口文件加载 v2.8.1 工程治理后的核心模块', () => {
   for (const path of [
     'js/app/render-flags.js',
     'js/app/workspace-manager.js',
@@ -33,6 +33,7 @@ test('入口文件加载 v2.8.0 Workspace & UX 2.0 模块', () => {
     'js/training/adaptive-engine.js',
     'js/training/training-workflow.js',
     'js/share/codec.js',
+    'js/platform/share-adapter.js',
     'js/ui/insights.js',
     'js/ui/workspace.js',
     'js/ui/position-editor.js',
@@ -130,7 +131,9 @@ test('main 入口由 Workspace / Session / Render 协调层承担应用编排', 
 test('CI 包含短浏览器 Smoke Test', async () => {
   const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const pkg = await readFile(new URL('../package.json', import.meta.url), 'utf8');
+  assert.match(workflow, /npm run lint/);
   assert.match(workflow, /npm run smoke/);
+  assert.match(pkg, /"lint":\s*"node scripts\/lint-architecture\.mjs"/);
   assert.match(pkg, /"smoke":\s*"node scripts\/smoke-browser\.mjs"/);
 });
 
@@ -220,4 +223,25 @@ test('Boot Guard 会在模块顺序损坏时提供明确依赖诊断', async () 
   assert.match(source, /AppCore\.RenderCoordinator/);
   assert.match(source, /UI\.WorkspaceView/);
   assert.match(index, /js\/app\/boot-guard\.js/);
+});
+
+
+test('浏览器分享能力下沉到 platform 层，Controller 不直接操作 DOM', async () => {
+  const controller = await readFile(new URL('../js/controllers/share-controller.js', import.meta.url), 'utf8');
+  const adapter = await readFile(new URL('../js/platform/share-adapter.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(controller, /document\.|createElement|execCommand|navigator|location/);
+  assert.match(controller, /this\.adapter\.share/);
+  assert.match(controller, /this\.adapter\.copyText/);
+  assert.match(adapter, /navigator\.share/);
+  assert.match(adapter, /navigator\.clipboard/);
+});
+
+test('音效设置由统一 Storage 管理而不是 AudioManager 直连 localStorage', async () => {
+  const audio = await readFile(new URL('../js/audio/audio.js', import.meta.url), 'utf8');
+  const storage = await readFile(new URL('../js/storage/storage.js', import.meta.url), 'utf8');
+  const migrations = await readFile(new URL('../js/storage/migrations.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(audio, /localStorage/);
+  assert.match(storage, /sound:\s*true/);
+  assert.match(migrations, /CURRENT_SCHEMA = 5/);
+  assert.match(migrations, /gomoku-sound/);
 });

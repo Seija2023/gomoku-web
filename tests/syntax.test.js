@@ -38,6 +38,7 @@ const files = [
   '../js/training/profile.js',
   '../js/services/derived-service.js',
   '../js/share/codec.js',
+  '../js/platform/share-adapter.js',
   '../js/audio/audio.js',
   '../js/ui/board.js',
   '../js/ui/workspace.js',
