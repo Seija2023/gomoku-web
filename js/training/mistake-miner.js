@@ -15,6 +15,25 @@
     return ranked.find(item => moveKey(item) === key) || null;
   }
 
+  function scoreActual(board, move, player, persona) {
+    if (!move || board[move.r]?.[move.c] !== 0) return null;
+    const opponent = opponentOf(player);
+    const attack = G.AI.evaluateMove(board, move.r, move.c, player);
+    const defense = G.AI.evaluateMove(board, move.r, move.c, opponent);
+    const weights = G.AI.personaWeights(persona);
+    const center = Math.floor(board.length / 2);
+    const centerDistance = Math.abs(move.r - center) + Math.abs(move.c - center);
+    const centerBonus = Math.max(0, board.length - 1 - centerDistance) * weights.center;
+    return {
+      r: move.r,
+      c: move.c,
+      attack,
+      defense,
+      centerBonus,
+      score: attack * weights.attack + defense * weights.defense + centerBonus,
+    };
+  }
+
   function tacticalWinningMoves(board, ranked, player) {
     return ranked.filter(item => G.AI.isWinningMove(board, item.r, item.c, player));
   }
@@ -94,7 +113,7 @@
       const prefixMoves = record.moves.slice(0, index).map(item => ({ ...item }));
       const board = G.History.boardAt(record.moves, index);
       const ranked = G.AI.rankMoves(board, prefixMoves, player, persona);
-      const actual = findRanked(ranked, move);
+      const actual = findRanked(ranked, move) || scoreActual(board, move, player, persona);
       if (!actual || !ranked.length) continue;
 
       const classified = classify({ board, ranked, actual, player });
