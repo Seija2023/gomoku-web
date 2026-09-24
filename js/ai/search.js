@@ -102,6 +102,7 @@
     const maximizing = toMove === rootPlayer;
     let bestScore = maximizing ? -Infinity : Infinity;
     let bestLine = [];
+    let cutoff = false;
 
     for (const candidate of generated.moves) {
       if (shouldStop(ctx)) return { aborted: true };
@@ -143,12 +144,15 @@
       }
       if (beta <= alpha) {
         ctx.cutoffs += 1;
+        cutoff = true;
         break;
       }
     }
 
-    const entry = { depth, score: bestScore, line: bestLine.map(move => ({ ...move })) };
-    ctx.table.set(key, entry);
+    if (!cutoff) {
+      const entry = { depth, score: bestScore, line: bestLine.map(move => ({ ...move })) };
+      ctx.table.set(key, entry);
+    }
     return { score: bestScore, line: bestLine };
   }
 
