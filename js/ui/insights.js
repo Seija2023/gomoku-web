@@ -306,13 +306,16 @@
       heading.innerHTML = `<strong>近期弱点</strong><span>${data.totalMistakes || 0} 个错误样本</span>`;
       this.trainingWeakness.appendChild(heading);
 
-      if (!data.categories?.length) {
+      const weakCategories = (data.categories || [])
+        .filter(item => item.weakness > 0 || item.mistakes > 0)
+        .slice(0, 4);
+      if (!weakCategories.length) {
         const empty = document.createElement('p');
         empty.className = 'helper-text';
         empty.textContent = '完成几局人机对战后，会根据你的实战自动识别训练重点。';
         this.trainingWeakness.appendChild(empty);
       } else {
-        for (const item of data.categories.slice(0, 4)) {
+        for (const item of weakCategories) {
           const row = document.createElement('div');
           row.className = 'weakness-row';
           const pressure = Math.max(6, Math.min(100, item.weakness * 4));
