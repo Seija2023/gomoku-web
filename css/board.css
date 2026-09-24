@@ -173,3 +173,58 @@
 .heat-2 { width: 25%; aspect-ratio: 1; background: rgba(214, 161, 70, .30); }
 .heat-3 { width: 34%; aspect-ratio: 1; background: rgba(218, 104, 58, .38); }
 .heat-4 { width: 44%; aspect-ratio: 1; background: rgba(190, 52, 40, .48); }
+
+.ghost-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.ghost-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ghost-links polyline {
+  fill: none;
+  stroke: rgba(90, 52, 24, .58);
+  stroke-width: .7;
+  stroke-dasharray: 2.2 2.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.ghost-piece {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  width: 5.35%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: clamp(8px, 1vw, 11px);
+  font-weight: 900;
+  opacity: .58;
+  box-sizing: border-box;
+  box-shadow: 0 2px 7px rgba(0,0,0,.2);
+}
+
+.ghost-piece.black {
+  color: #fff;
+  background: #171717;
+  border: 2px dashed rgba(255,255,255,.72);
+}
+
+.ghost-piece.white {
+  color: #3c332a;
+  background: #f6f2ea;
+  border: 2px dashed rgba(63,45,28,.55);
+}
+
+.ghost-reply { opacity: .44; }
+.ghost-follow { opacity: .32; }
