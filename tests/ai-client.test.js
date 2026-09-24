@@ -84,3 +84,44 @@ test('AIClient exposes asynchronous counterfactual comparison through the same b
   assert.equal(client.stats().compareRequests, 1);
   assert.equal(client.stats().requests.counterfactual, 1);
 });
+
+
+test('MainThreadAIClient records iterative depth history for Search Inspector', async () => {
+  const analysis = {
+    chooseMove: (board, moves, difficulty, player, persona, rng, options) => {
+      options.onProgress?.({
+        depth: 1,
+        nodes: 20,
+        elapsedMs: 2,
+        score: 100,
+        bestMove: { r: 7, c: 7 },
+      });
+      options.onProgress?.({
+        depth: 2,
+        nodes: 90,
+        elapsedMs: 5,
+        score: 130,
+        bestMove: { r: 7, c: 8 },
+      });
+      return {
+        move: { r: 7, c: 8 },
+        search: { depth: 2, nodes: 90, elapsedMs: 5, cacheHits: 3, cutoffs: 4 },
+      };
+    },
+  };
+  const client = new G.Services.MainThreadAIClient(analysis, new G.Services.RequestGate());
+  await client.chooseMove({
+    board: [],
+    moves: [],
+    difficulty: 'normal',
+    player: 2,
+    persona: 'balanced',
+  }, 'variation');
+
+  const trace = client.searchTrace('variation');
+  assert.equal(trace.length, 2);
+  assert.equal(trace[0].depth, 1);
+  assert.equal(trace[1].depth, 2);
+  assert.equal(trace[1].score, 130);
+  assert.equal(client.stats().requests.variation, 1);
+});
