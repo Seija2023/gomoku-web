@@ -92,3 +92,41 @@ test('恢复棋局会拒绝错误轮次和重复落点', () => {
     currentPlayer: Config.BLACK,
   }), false);
 });
+
+
+test('自定义局面可以直接开始对局并保留预设棋子', () => {
+  const board = globalThis.Gomoku.Position.emptyBoard();
+  board[7][7] = Config.BLACK;
+  board[7][8] = Config.WHITE;
+
+  const game = new Game.Game();
+  assert.equal(game.loadPosition({ board, currentPlayer: Config.BLACK }, Config.MODES.PVP), true);
+  assert.equal(game.customPosition, true);
+  assert.equal(game.moves.length, 0);
+  assert.equal(game.board[7][7], Config.BLACK);
+  assert.equal(game.play(8, 8).ok, true);
+  assert.equal(game.undo(), 1);
+  assert.equal(game.board[7][7], Config.BLACK);
+  assert.equal(game.board[8][8], 0);
+  assert.equal(game.currentPlayer, Config.BLACK);
+});
+
+test('自定义局面快照可以恢复，已有五连的局面不能直接开局', () => {
+  const board = globalThis.Gomoku.Position.emptyBoard();
+  board[6][6] = Config.BLACK;
+  board[6][7] = Config.WHITE;
+
+  const game = new Game.Game();
+  assert.equal(game.loadPosition({ board, currentPlayer: Config.WHITE }, Config.MODES.AI), true);
+  const snapshot = game.snapshot();
+
+  const restored = new Game.Game();
+  assert.equal(restored.restore(snapshot), true);
+  assert.equal(restored.customPosition, true);
+  assert.equal(restored.currentPlayer, Config.WHITE);
+  assert.equal(restored.board[6][6], Config.BLACK);
+
+  const terminal = globalThis.Gomoku.Position.emptyBoard();
+  for (let c = 3; c <= 7; c += 1) terminal[7][c] = Config.BLACK;
+  assert.equal(restored.loadPosition({ board: terminal, currentPlayer: Config.WHITE }), false);
+});
