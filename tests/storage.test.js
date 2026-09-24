@@ -79,3 +79,17 @@ test('自定义局面即使 continuation moves 为空也会保存', () => {
   assert.equal(Storage.saveCurrent(snapshot), true);
   assert.deepEqual(Storage.loadCurrent(), snapshot);
 });
+
+
+test('变化树会独立持久化并可清除', () => {
+  const payload = {
+    version: 1,
+    rootBoard: Array.from({ length: 15 }, () => Array(15).fill(0)),
+    rootPlayer: Config.BLACK,
+    nodes: [{ id: 'root', parentId: null, children: [] }],
+  };
+  assert.equal(Storage.saveVariationTree(payload), true);
+  assert.deepEqual(Storage.loadVariationTree(), payload);
+  assert.equal(Storage.clearVariationTree(), true);
+  assert.equal(Storage.loadVariationTree(), null);
+});

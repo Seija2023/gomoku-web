@@ -767,3 +767,252 @@ button.primary {
   font-size: 11px;
   line-height: 1.5;
 }
+
+
+.lab-secondary {
+  margin-top: 8px;
+}
+
+.variation-card {
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid rgba(55,39,21,.12);
+  border-radius: 18px;
+  background: rgba(255,250,242,.94);
+  box-shadow: 0 10px 28px rgba(48,35,20,.08);
+}
+
+.variation-header,
+.variation-toolbar,
+.variation-name-row,
+.search-inspector-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.variation-header,
+.search-inspector-head {
+  justify-content: space-between;
+}
+
+.variation-header strong {
+  font-size: 17px;
+}
+
+.variation-header button,
+.variation-toolbar button,
+.variation-name-row button,
+.variation-child,
+.variation-node,
+.candidate-ghost-btn {
+  min-height: 40px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: #e9e1d6;
+  color: #2d2924;
+  font-weight: 700;
+}
+
+.variation-summary {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.variation-toolbar {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.variation-toolbar button {
+  flex: 1 1 130px;
+}
+
+.variation-name-row {
+  margin-top: 10px;
+}
+
+.variation-name-row input {
+  min-width: 0;
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid rgba(55,39,21,.12);
+  border-radius: 10px;
+  background: #fffaf2;
+  color: #2d2924;
+  font: inherit;
+}
+
+.variation-section {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(55,39,21,.08);
+}
+
+.variation-children {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.variation-child {
+  flex: 0 0 min(230px, 72vw);
+  text-align: left;
+}
+
+.variation-child strong,
+.variation-child span {
+  display: block;
+}
+
+.variation-child span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.variation-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.variation-tree-list {
+  display: grid;
+  gap: 6px;
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.variation-node {
+  position: relative;
+  width: calc(100% - min(calc(var(--depth) * 16px), 112px));
+  margin-left: min(calc(var(--depth) * 16px), 112px);
+  text-align: left;
+  background: rgba(143,101,53,.07);
+}
+
+.variation-node::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: rgba(111,89,60,.35);
+}
+
+.variation-node.active {
+  color: #fff;
+  background: #2e2b27;
+}
+
+.variation-node-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.variation-node em {
+  font-style: normal;
+  opacity: .72;
+}
+
+.variation-node small {
+  display: block;
+  margin-top: 3px;
+  opacity: .72;
+  font-size: 10px;
+}
+
+.search-inspector {
+  margin-top: 10px;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(55,39,21,.09);
+  background: rgba(143,101,53,.045);
+}
+
+.search-inspector-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.search-inspector-metrics > div {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: rgba(255,250,242,.78);
+}
+
+.search-inspector-metrics span,
+.search-inspector-metrics strong {
+  display: block;
+}
+
+.search-inspector-metrics span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.search-inspector-metrics strong {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.search-depth-history {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.search-depth-row {
+  display: grid;
+  grid-template-columns: 24px minmax(50px, 1fr) 36px 58px;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.search-depth-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(46,43,39,.08);
+}
+
+.search-depth-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(74,91,100,.52);
+}
+
+.search-depth-row em {
+  overflow: hidden;
+  color: var(--muted);
+  font-style: normal;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+.candidate-ghost-btn {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  padding-block: 7px;
+  font-size: 10px;
+}
+
+.candidate-ghost-btn.active {
+  color: #fff;
+  background: #4b5f69;
+}

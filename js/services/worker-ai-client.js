@@ -15,6 +15,7 @@
       this.nextId = 1;
       this.mode = 'starting';
       this.latest = null;
+      this.traces = new Map();
       this.metrics = {
         chooseRequests: 0,
         compareRequests: 0,
@@ -139,6 +140,13 @@
       this.metrics.fallbackRequests += 1;
       const method = item.operation === 'choose' ? 'chooseMove' : 'compareMove';
       const response = await this.fallback[method](item.context, item.channel);
+      const fallbackTrace = this.fallback.searchTrace?.(item.channel) || [];
+      this.traces.set(item.channel, fallbackTrace.map(entry => ({
+        ...entry,
+        bestMove: entry.bestMove ? { ...entry.bestMove } : null,
+      })));
+      const fallbackProgress = this.fallback.progress?.();
+      if (fallbackProgress) this.latest = { ...fallbackProgress, mode: 'main-thread' };
       const stale = !this.gate.isCurrent(item.channel, item.version);
       if (stale) this.metrics.staleResults += 1;
       item.resolve({
@@ -147,6 +155,42 @@
         version: item.version,
         fallback: true,
       });
+    }
+
+    beginTrace(channel) {
+      this.traces.set(channel, []);
+    }
+
+    recordTrace(channel, progress) {
+      if (!progress?.depth) return;
+      const trace = this.traces.get(channel) || [];
+      const existing = trace.findIndex(item => item.depth === progress.depth);
+      const previous = existing >= 0 ? trace[existing] : null;
+      const entry = {
+        depth: progress.depth,
+        nodes: progress.nodes ?? previous?.nodes ?? 0,
+        elapsedMs: progress.elapsedMs ?? previous?.elapsedMs ?? 0,
+        score: progress.score ?? previous?.score ?? null,
+        cacheHits: progress.cacheHits ?? previous?.cacheHits ?? 0,
+        tacticalNodes: progress.tacticalNodes ?? previous?.tacticalNodes ?? 0,
+        cutoffs: progress.cutoffs ?? previous?.cutoffs ?? 0,
+        tableEntries: progress.tableEntries ?? previous?.tableEntries ?? 0,
+        bestMove: progress.bestMove
+          ? { ...progress.bestMove }
+          : previous?.bestMove ? { ...previous.bestMove } : null,
+      };
+      if (existing >= 0) trace[existing] = entry;
+      else trace.push(entry);
+      trace.sort((a, b) => a.depth - b.depth);
+      this.traces.set(channel, trace.slice(-12));
+    }
+
+    searchTrace(channel = null) {
+      const key = channel || this.latest?.channel;
+      return key ? (this.traces.get(key) || []).map(item => ({
+        ...item,
+        bestMove: item.bestMove ? { ...item.bestMove } : null,
+      })) : [];
     }
 
     handleMessage(message) {
@@ -160,6 +204,7 @@
           ...message.progress,
         };
         this.latest = progress;
+        this.recordTrace(item.channel, progress);
         item.context.onProgress?.({ ...progress });
         return;
       }
@@ -190,6 +235,7 @@
           ...summary,
           bestMove: message.result?.move || message.result?.recommendedLine || null,
         };
+        this.recordTrace(item.channel, this.latest);
         item.context.onProgress?.({ ...this.latest });
       } else if (this.latest?.channel === item.channel) {
         this.latest = { ...this.latest, active: false };
@@ -232,6 +278,7 @@
 
     async request(operation, context, channel) {
       const version = this.gate.next(channel);
+      this.beginTrace(channel);
       if (operation === 'choose') this.metrics.chooseRequests += 1;
       else this.metrics.compareRequests += 1;
 
@@ -334,10 +381,12 @@
         pending: this.pending.size,
         deviceFactor: this.deviceFactor(),
         latestProgress: this.progress(),
+        searchTrace: this.searchTrace(),
         requests: {
           ai: this.gate.current('ai'),
           branch: this.gate.current('branch'),
           counterfactual: this.gate.current('counterfactual'),
+          variation: this.gate.current('variation'),
         },
       };
     }

@@ -1,6 +1,6 @@
 (function (G) {
   const SCHEMA_KEY = 'gomoku-schema-version';
-  const CURRENT_SCHEMA = 3;
+  const CURRENT_SCHEMA = 4;
 
   function safeRead(key) {
     try {
@@ -39,6 +39,7 @@
       migrateTo3();
       version = 3;
     }
+    if (version < 4) version = 4;
     safeWrite(SCHEMA_KEY, Math.max(version, CURRENT_SCHEMA));
     return CURRENT_SCHEMA;
   }

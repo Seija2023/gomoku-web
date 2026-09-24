@@ -254,6 +254,8 @@
           score: Math.round(result.score),
           cacheHits: ctx.cacheHits,
           tacticalNodes: ctx.tacticalNodes,
+          cutoffs: ctx.cutoffs,
+          tableEntries: ctx.table.size,
         });
       }
 

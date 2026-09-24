@@ -10,6 +10,10 @@
       this.ghostToggle = doc.getElementById('ghostToggle');
       this.explain = doc.getElementById('aiExplain');
       this.searchStatus = doc.getElementById('aiSearchStatus');
+      this.searchInspector = doc.getElementById('searchInspector');
+      this.searchStability = doc.getElementById('searchStability');
+      this.searchInspectorMetrics = doc.getElementById('searchInspectorMetrics');
+      this.searchDepthHistory = doc.getElementById('searchDepthHistory');
       this.candidateCompare = doc.getElementById('candidateCompare');
       this.candidateSide = doc.getElementById('candidateSide');
       this.profile = doc.getElementById('profileContent');
@@ -28,7 +32,8 @@
       this.shareNotice = doc.getElementById('shareNotice');
       this.shareNoticeText = doc.getElementById('shareNoticeText');
       this.shareNoticeClose = doc.getElementById('shareNoticeClose');
-      this.renderKeys = { settings: '', explanation: '', candidates: '', search: '' };
+      this.renderKeys = { settings: '', explanation: '', candidates: '', search: '', inspector: '' };
+      this.candidateMap = new Map();
     }
 
     bind(handlers) {
@@ -37,6 +42,12 @@
       this.heatToggle.addEventListener('click', handlers.toggleHeatmap);
       this.heatMode.addEventListener('change', () => handlers.changeHeatmapMode(this.heatMode.value));
       this.ghostToggle.addEventListener('click', handlers.toggleGhost);
+      this.candidateCompare.addEventListener('click', event => {
+        const button = event.target.closest('[data-ghost-candidate]');
+        if (!button) return;
+        const candidate = this.candidateMap.get(button.dataset.ghostCandidate);
+        if (candidate) handlers.toggleCandidateGhost(candidate);
+      });
       this.trainingBtn.addEventListener('click', handlers.startTraining);
       this.branchExit.addEventListener('click', handlers.exitBranch);
       this.trainingNext.addEventListener('click', handlers.nextTraining);
@@ -116,13 +127,73 @@
       this.searchStatus.classList.remove('hidden');
     }
 
-    renderCandidates(candidates, player) {
-      const key = `${player || 0}|${(candidates || []).map(item =>
+    renderSearchInspector(trace = [], progress = null) {
+      const items = Array.isArray(trace) ? trace : [];
+      const final = items[items.length - 1] || null;
+      const finalKey = final?.bestMove ? `${final.bestMove.r},${final.bestMove.c}` : '';
+      const stableCount = finalKey
+        ? items.filter(item => item.bestMove && `${item.bestMove.r},${item.bestMove.c}` === finalKey).length
+        : 0;
+      const stability = items.length ? Math.round((stableCount / items.length) * 100) : 0;
+      const key = items.map(item =>
+        `${item.depth}:${item.nodes}:${item.score ?? '-'}:${item.bestMove?.r ?? '-'},${item.bestMove?.c ?? '-'}`
+      ).join('|') + `|${progress?.active || false}|${progress?.cutoffs || 0}|${progress?.tableEntries || 0}`;
+      if (key === this.renderKeys.inspector) return;
+      this.renderKeys.inspector = key;
+
+      if (!items.length) {
+        this.searchInspector.classList.add('hidden');
+        this.searchInspectorMetrics.replaceChildren();
+        this.searchDepthHistory.replaceChildren();
+        this.searchStability.textContent = '';
+        return;
+      }
+
+      this.searchInspector.classList.remove('hidden');
+      this.searchStability.textContent = finalKey
+        ? `推荐稳定度 ${stability}% · ${stableCount}/${items.length} 层保持 ${G.History.coordinate(final.bestMove)}`
+        : `${items.length} 层搜索记录`;
+
+      const metrics = [
+        ['最终深度', final?.depth || progress?.depth || 0],
+        ['节点', (progress?.nodes ?? final?.nodes ?? 0).toLocaleString()],
+        ['耗时', `${progress?.elapsedMs ?? final?.elapsedMs ?? 0} ms`],
+        ['缓存命中', (progress?.cacheHits ?? final?.cacheHits ?? 0).toLocaleString()],
+        ['战术节点', (progress?.tacticalNodes ?? final?.tacticalNodes ?? 0).toLocaleString()],
+        ['剪枝', (progress?.cutoffs || 0).toLocaleString()],
+      ];
+      this.searchInspectorMetrics.replaceChildren();
+      for (const [label, value] of metrics) {
+        const item = document.createElement('div');
+        item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+        this.searchInspectorMetrics.appendChild(item);
+      }
+
+      const maxAbsScore = Math.max(1, ...items.map(item => Math.abs(Number(item.score) || 0)));
+      this.searchDepthHistory.replaceChildren();
+      for (const item of items) {
+        const row = document.createElement('div');
+        row.className = 'search-depth-row';
+        const move = item.bestMove ? G.History.coordinate(item.bestMove) : '—';
+        const width = Math.max(8, Math.round((Math.abs(Number(item.score) || 0) / maxAbsScore) * 100));
+        row.innerHTML = `
+          <span>D${item.depth}</span>
+          <div class="search-depth-track"><i style="width:${width}%"></i></div>
+          <strong>${move}</strong>
+          <em>${item.score == null ? '—' : Math.round(item.score)}</em>
+        `;
+        this.searchDepthHistory.appendChild(row);
+      }
+    }
+
+    renderCandidates(candidates, player, pinnedKey = '') {
+      const key = `${player || 0}|${pinnedKey}|${(candidates || []).map(item =>
         `${item.r},${item.c},${item.score},${item.attackLevel},${item.defenseLevel},${item.reply?.r ?? '-'},${item.reply?.c ?? '-'},${item.followUp?.r ?? '-'},${item.followUp?.c ?? '-'},${(item.line || []).map(p => `${p.r}:${p.c}`).join('/')}`
       ).join(';')}`;
       if (key === this.renderKeys.candidates) return;
       this.renderKeys.candidates = key;
       this.candidateCompare.innerHTML = '';
+      this.candidateMap.clear();
       this.candidateSide.textContent = player ? `${player === BLACK ? '黑' : '白'}方视角` : '';
 
       if (!candidates?.length) {
@@ -139,9 +210,12 @@
         const letter = String.fromCharCode(65 + index);
         const reply = item.reply ? G.History.coordinate(item.reply) : '—';
         const follow = item.followUp ? G.History.coordinate(item.followUp) : '—';
-        const variation = (item.line || []).slice(0, 5)
+        const variation = (item.line || []).slice(0, 7)
           .map(point => G.History.coordinate(point))
           .join(' → ') || '—';
+        const ghostKey = `${item.r},${item.c}`;
+        this.candidateMap.set(ghostKey, item);
+        const pinned = pinnedKey === ghostKey;
         card.innerHTML = `
           <div class="candidate-title"><strong>${letter} · ${G.History.coordinate(item)}</strong><span>${item.score}</span></div>
           <div class="candidate-row"><span>进攻</span><strong>${item.attackLevel}</strong></div>
@@ -149,6 +223,7 @@
           <div class="candidate-row"><span>对手回应</span><strong>${reply}</strong></div>
           <div class="candidate-row"><span>后续建议</span><strong>${follow}</strong></div>
           <div class="candidate-row candidate-line"><span>变化线</span><strong>${variation}</strong></div>
+          <button class="candidate-ghost-btn${pinned ? ' active' : ''}" type="button" data-ghost-candidate="${ghostKey}" aria-pressed="${String(pinned)}">${pinned ? '已锁定变化线' : '锁定变化线'}</button>
         `;
         this.candidateCompare.appendChild(card);
       });

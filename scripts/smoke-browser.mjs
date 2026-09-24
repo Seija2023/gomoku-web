@@ -202,6 +202,35 @@ try {
   const aiRuntime = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { moves: Gomoku.App.getGame().moves.length, mode: perf.aiClient.mode, progress: perf.aiClient.latestProgress, searchStatus: document.getElementById('aiSearchStatus').textContent }; })()");
   const aiMoves = aiRuntime.moves;
 
+  await cdp.waitFor("document.querySelectorAll('.candidate-ghost-btn').length > 0");
+  await cdp.evaluate("document.querySelector('.candidate-ghost-btn').click()");
+  const ghost2 = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { pinned: perf.board.ghostPinned, markers: document.querySelectorAll('.ghost-layer.pinned .ghost-piece').length, buttonActive: document.querySelector('.candidate-ghost-btn.active') !== null }; })()");
+
+  await cdp.evaluate("Gomoku.App.startVariationCurrent()");
+  await cdp.waitFor("!document.getElementById('variationCard').classList.contains('hidden')");
+  const variationStart = await cdp.evaluate("(() => ({ nodes: document.querySelectorAll('.variation-node').length, ghostPinned: Gomoku.App.getPerformanceStats().board.ghostPinned, cardVisible: !document.getElementById('variationCard').classList.contains('hidden') }))()");
+
+  await cdp.evaluate("(() => { const cell = [...document.querySelectorAll('.cell')].find(item => !item.querySelector('.piece') && !item.disabled); if (!cell) throw new Error('No empty variation cell'); cell.click(); })()");
+  await cdp.waitFor("document.querySelectorAll('.variation-node').length >= 2");
+  const manualVariation = await cdp.evaluate("(() => ({ nodes: document.querySelectorAll('.variation-node').length, active: document.querySelector('.variation-node.active')?.textContent || '' }))()");
+
+  await cdp.evaluate("document.getElementById('variationRootBtn').click(); document.getElementById('variationExpandBtn').click()");
+  await cdp.waitFor("document.getElementById('variationExpandBtn').textContent.includes('AI 扩展候选') && document.querySelectorAll('.variation-child').length >= 2", 10000);
+  await cdp.waitFor("!document.getElementById('searchInspector').classList.contains('hidden') && document.querySelectorAll('.search-depth-row').length > 0", 5000);
+  const expandedVariation = await cdp.evaluate("(() => ({ nodes: document.querySelectorAll('.variation-node').length, children: document.querySelectorAll('.variation-child').length, inspectorVisible: !document.getElementById('searchInspector').classList.contains('hidden'), depthRows: document.querySelectorAll('.search-depth-row').length, stability: document.getElementById('searchStability').textContent }))()");
+
+  await cdp.evaluate("document.querySelector('.variation-child').click(); document.getElementById('variationFavoriteBtn').click(); const input = document.getElementById('variationNameInput'); input.value = 'Smoke 分支'; document.getElementById('variationSaveNameBtn').click()");
+  await cdp.waitFor("document.getElementById('variationTreeList').textContent.includes('Smoke 分支')");
+  const namedVariation = await cdp.evaluate("(() => ({ favorite: document.getElementById('variationFavoriteBtn').textContent.includes('已收藏'), named: document.getElementById('variationTreeList').textContent.includes('Smoke 分支') }))()");
+
+  await cdp.evaluate("Gomoku.App.exitVariation()");
+  await cdp.waitFor("document.getElementById('variationCard').classList.contains('hidden')");
+  await cdp.waitFor("document.getElementById('variationResumeBtn').disabled === false");
+  await cdp.evaluate("Gomoku.App.resumeVariation()");
+  await cdp.waitFor("!document.getElementById('variationCard').classList.contains('hidden') && document.getElementById('variationTreeList').textContent.includes('Smoke 分支')");
+  const resumedVariation = await cdp.evaluate("(() => ({ restored: document.getElementById('variationTreeList').textContent.includes('Smoke 分支'), nodes: document.querySelectorAll('.variation-node').length }))()");
+  await cdp.evaluate("Gomoku.App.exitVariation()");
+
   await cdp.evaluate("(() => { Gomoku.App.setMode('pvp'); const sequence = [[7,3],[0,0],[7,4],[0,2],[7,5],[0,4],[7,6],[0,6],[7,7]]; for (const pair of sequence) { const r = pair[0], c = pair[1]; document.querySelector('[data-row=\"' + r + '\"][data-col=\"' + c + '\"]').click(); } })()");
   await cdp.waitFor('Gomoku.App.getGame().gameOver === true');
 
@@ -232,6 +261,13 @@ try {
     initialCells: initial.cells === 225,
     workerBackend: initial.workerMode === 'worker' && initial.embeddedWorker === false,
     workerSearchTelemetry: aiRuntime.mode === 'worker' && aiRuntime.progress?.nodes > 0 && aiRuntime.progress?.depth >= 1 && aiRuntime.searchStatus.includes('Worker AI'),
+    ghostLine2Pinned: ghost2.pinned && ghost2.markers >= 2 && ghost2.buttonActive,
+    variationOpened: variationStart.cardVisible && variationStart.nodes === 1 && variationStart.ghostPinned === false,
+    variationManualBranch: manualVariation.nodes >= 2 && manualVariation.active.length > 0,
+    variationAiExpanded: expandedVariation.nodes >= 3 && expandedVariation.children >= 2,
+    searchInspectorRendered: expandedVariation.inspectorVisible && expandedVariation.depthRows > 0 && expandedVariation.stability.includes('稳定度'),
+    variationNamedFavorite: namedVariation.favorite && namedVariation.named,
+    variationPersistence: resumedVariation.restored && resumedVariation.nodes >= 3,
     standaloneBlobWorker: standaloneState.embedded && standaloneState.mode === 'worker',
     standaloneAiResponded: standaloneState.moves >= 2 && standaloneState.progress?.nodes > 0,
     positionEditorPlaced: editorState.pieces === 2 && editorState.cardVisible,
@@ -250,7 +286,7 @@ try {
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
-  console.log(JSON.stringify({ checks, initial, aiRuntime, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
+  console.log(JSON.stringify({ checks, initial, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
 
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {

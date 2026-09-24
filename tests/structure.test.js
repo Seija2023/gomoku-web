@@ -7,11 +7,13 @@ const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'u
 const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.5.0 Local AI 2.0 与棋局实验室模块', () => {
+test('入口文件加载 v2.6.0 Variation Lab 与 Local AI 2.0 模块', () => {
   for (const path of [
     'js/app/render-flags.js',
     'js/game/position.js',
     'js/game/editable-position.js',
+    'js/lab/variation-tree.js',
+    'js/lab/variation-workflow.js',
     'js/storage/migrations.js',
     'js/services/analysis-service.js',
     'js/services/counterfactual-service.js',
@@ -25,12 +27,14 @@ test('入口文件加载 v2.5.0 Local AI 2.0 与棋局实验室模块', () => {
     'js/share/codec.js',
     'js/ui/insights.js',
     'js/ui/position-editor.js',
+    'js/ui/variation-tree.js',
     'js/controllers/review-controller.js',
     'js/controllers/training-controller.js',
     'js/controllers/share-controller.js',
     'js/controllers/game-controller.js',
     'js/controllers/branch-controller.js',
     'js/controllers/position-editor-controller.js',
+    'js/controllers/variation-controller.js',
     'js/main.js',
   ]) assert.match(index, new RegExp(path.replace(/[./]/g, '\\$&')));
 });
@@ -56,7 +60,9 @@ test('页面保留 v2.3 核心 PC 与手机控件', () => {
     'positionEditorBtn','positionEditorCard','editorToolBlack','editorToolWhite',
     'editorToolErase','editorNextPlayer','editorCompareBtn','counterfactualCard',
     'counterfactualUserMove','counterfactualAiMove','editorStartPvpBtn','editorStartAiBtn',
-    'aiSearchStatus'
+    'aiSearchStatus','searchInspector','searchDepthHistory','searchStability',
+    'variationStartBtn','variationResumeBtn','variationCard','variationTreeList',
+    'variationChildren','variationExpandBtn','variationFavoriteBtn'
   ]) assert.match(index, new RegExp(`id="${id}"`));
 });
 
@@ -90,7 +96,7 @@ test('主控制器支持按区域刷新而不是只能全量 refresh', async () 
 test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => {
   const source = await readFile(new URL('../js/main.js', import.meta.url), 'utf8');
   const lines = source.split('\n').length;
-  assert.ok(lines < 720, `main.js should stay below 720 lines after v2.4 integration, got ${lines}`);
+  assert.ok(lines < 800, `main.js should stay below 800 lines after v2.6 integration, got ${lines}`);
   assert.match(source, /new G\.Controllers\.GameController/);
   assert.match(source, /new G\.Controllers\.ReviewController/);
   assert.match(source, /new G\.Controllers\.BranchController/);
@@ -98,6 +104,8 @@ test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => 
   assert.match(source, /new G\.Controllers\.ShareController/);
   assert.match(source, /new G\.Controllers\.PositionEditorController/);
   assert.match(source, /G\.Services\.createAIClient/);
+  assert.match(source, /new G\.Controllers\.VariationController/);
+  assert.match(source, /new G\.Lab\.VariationWorkflow/);
 });
 
 test('CI 包含短浏览器 Smoke Test', async () => {
@@ -124,4 +132,20 @@ test('Local AI 2.0 包含迭代加深、置换表与 Worker fallback', async () 
   assert.match(workerClient, /MainThreadAIClient/);
   assert.match(workerClient, /new Blob/);
   assert.match(workerClient, /restartWorker/);
+});
+
+
+test('Variation Tree、Ghost Line 2.0 与 Search Inspector 保持模块化边界', async () => {
+  const variation = await readFile(new URL('../js/lab/variation-tree.js', import.meta.url), 'utf8');
+  const board = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
+  const insights = await readFile(new URL('../js/ui/insights.js', import.meta.url), 'utf8');
+  const worker = await readFile(new URL('../js/services/worker-ai-client.js', import.meta.url), 'utf8');
+  assert.match(variation, /class VariationTree/);
+  assert.match(variation, /serialize\(\)/);
+  assert.match(variation, /static restore/);
+  assert.match(board, /pinGhostLine/);
+  assert.match(board, /pinnedGhostKey/);
+  assert.match(insights, /renderSearchInspector/);
+  assert.match(insights, /candidate-ghost-btn/);
+  assert.match(worker, /searchTrace/);
 });

@@ -8,9 +8,27 @@
 https://seija2023.github.io/gomoku-web/
 ```
 
-当前工程版本：**v2.5.0（Local AI 2.0）**。
+当前工程版本：**v2.6.0（Variation Lab）**。
 
-## v2.5.0 重点
+## v2.6.0 重点
+
+这一版把 v2.4 的棋局实验室和 v2.5 的深度搜索连接成可持续探索的多分支分析工作台。
+
+- 新增持久化 Variation Tree：同一局面可保存多个手动或 AI 分支，不再覆盖原来的假设线
+- 复盘中的“从此变招”升级为“变化树分析”，退出后可回到原复盘位置
+- 当前对局也可直接进入变化树实验室，原对局不会被修改
+- 变化节点支持命名、收藏、父节点 / 根节点导航和删除子树
+- AI 可一次扩展 A/B/C 多个候选，并把最佳 Principal Variation 继续写入树中
+- 变化树自动保存到 localStorage，可退出后继续上次分析
+- Ghost Line 2.0：候选卡可以锁定变化线，PC / 手机都不依赖 hover 才能保留预览
+- Ghost Line / 候选变化线最多延伸到 7 ply
+- 新增 AI Search Inspector：记录每一层 Iterative Deepening 的推荐手、评分、节点数和耗时
+- 新增“推荐稳定度”，观察最佳手是否在多个搜索深度中保持一致
+- Search Inspector 同时展示缓存命中、战术节点和 Alpha-Beta 剪枝统计
+- 变化树存档加入结构校验，损坏或循环树会被拒绝恢复
+- Chrome Smoke 覆盖 Ghost Line 锁定、手动建树、AI 扩展、命名收藏、退出恢复和 Search Inspector
+
+## v2.5.0 Local AI 2.0
 
 这一版把 v2.4 的棋局实验室建立在更强的纯本地搜索引擎上，核心 AI 仍然不依赖任何外部 API。
 
@@ -22,7 +40,7 @@ https://seija2023.github.io/gomoku-web/
 - 加入搜索级 Transposition Table，完整搜索结果可在重复局面复用
 - 简单 / 普通 / 困难使用不同时间预算、最大深度和候选宽度
 - 手机或低核心设备自动收紧计算预算，桌面设备保留更高搜索上限
-- Ghost Line 和候选变化线最多可展示 5 手连续变化
+- Ghost Line 和候选变化线支持多手连续变化（v2.6 已扩展到 7 ply）
 - Counterfactual Analysis 使用更深搜索比较“你的尝试”和 AI 推荐手
 - AI 面板显示实际搜索深度、节点数、耗时、缓存命中、战术节点和当前推荐
 - GitHub Pages 使用独立 Worker；Standalone 单文件构建内嵌 Blob Worker
@@ -72,9 +90,10 @@ https://seija2023.github.io/gomoku-web/
 - “为什么这一步不如推荐手？”本地反事实比较，不依赖外部 API
 - 简单 / 普通 / 困难 Local AI 2.0（Worker + 时间预算 + 迭代加深）
 - 均衡 / 进攻 / 防守 / 冒险 AI 棋风
-- Ghost Line：PC 悬停、手机长按拖动
-- 候选 A/B/C、热力图、可解释 AI
-- 优势曲线、关键手、What-if 分支复盘
+- Ghost Line 2.0：PC 悬停、手机长按拖动，并可从候选卡锁定变化线
+- 候选 A/B/C、热力图、可解释 AI、Search Inspector 与推荐稳定度
+- 持久化 Variation Tree：多分支、AI 扩展、命名、收藏、恢复
+- 优势曲线、关键手与变化树复盘
 - 分享棋局 / 挑战局面
 - 残局训练、间隔复习、玩家画像、个人开局库
 - 最近 20 局历史、终局悔棋和未完成棋局自动恢复
