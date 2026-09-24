@@ -45,6 +45,10 @@ for (const [file, content] of source) {
     fail(errors, `${file}: DOM access is restricted to ui/, platform/, and main.js`);
   }
 
+  if (file.startsWith('js/controllers/') && /\b(navigator|location)\b/.test(content)) {
+    fail(errors, `${file}: browser platform globals must be accessed through js/platform/`);
+  }
+
   if (/\blocalStorage\b/.test(content) && !file.startsWith('js/storage/')) {
     fail(errors, `${file}: localStorage access must go through js/storage/`);
   }
