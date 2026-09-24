@@ -87,6 +87,21 @@
     handleCellPreview,
   );
 
+  const variationWorkflow = new G.Lab.VariationWorkflow({
+    game,
+    gameController,
+    reviewController,
+    branchController,
+    trainingController,
+    positionEditorController,
+    variationController,
+    panel,
+    boardView,
+    settings,
+    refresh,
+    flags: RenderFlags,
+  });
+
   const advantageChart = new G.UI.AdvantageChart(
     document.getElementById('advantageChart'),
     document.getElementById('advantageLabel'),
@@ -491,82 +506,6 @@
     refresh();
   }
 
-  function startVariationFromReview() {
-    const data = reviewController.variationData();
-    if (!data) return false;
-
-    boardView.clearGhost();
-    reviewController.deactivateForBranch();
-    if (!variationController.startFromReview(data.prefix, data.index)) {
-      reviewController.resume();
-      return false;
-    }
-    refresh();
-    return true;
-  }
-
-  function startVariationCurrent() {
-    if (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-    ) return false;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    boardView.clearGhost();
-    if (!variationController.startFromGame(game)) return false;
-    refresh();
-    return true;
-  }
-
-  function resumeVariation() {
-    if (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-    ) return false;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    boardView.clearGhost();
-    if (!variationController.resumeSaved()) return false;
-    refresh();
-    return true;
-  }
-
-  function exitVariation() {
-    const result = variationController.exit();
-    if (!result.exited) return false;
-    boardView.clearGhost();
-
-    if (result.origin === 'review') reviewController.resume();
-    refresh();
-
-    if (result.origin !== 'review' && game.mode === MODES.AI && game.currentPlayer === WHITE && !game.gameOver) {
-      gameController.scheduleAiMove();
-    } else if (result.origin !== 'review' && game.gameOver) {
-      panel.showResult(game);
-    }
-    return true;
-  }
-
-  function toggleCandidateGhost(candidate) {
-    if (!settings.ghost || !candidate?.line?.length) return false;
-    const key = `${candidate.r},${candidate.c}`;
-    const pinned = boardView.pinGhostLine({
-      line: candidate.line.map(point => ({ ...point })),
-      reply: candidate.reply || null,
-      followUp: candidate.followUp || null,
-    }, key);
-    refresh(RenderFlags.ANALYSIS);
-    return pinned;
-  }
-
   function startSharedChallenge(payload) {
     gameController.clearTimers();
     if (!branchController.startShared(payload)) return false;
@@ -746,7 +685,7 @@
     seekEnd: () => reviewController.seekEnd(),
     togglePlay: () => reviewController.togglePlay(),
     exit: exitReview,
-    startBranch: startVariationFromReview,
+    startBranch: () => variationWorkflow.startFromReview(),
     toggleKeyOnly: () => reviewController.toggleKeyOnly(),
     shareGame: shareReviewGame,
     shareChallenge: shareReviewChallenge,
@@ -757,7 +696,7 @@
     toggleHeatmap,
     changeHeatmapMode,
     toggleGhost,
-    toggleCandidateGhost,
+    toggleCandidateGhost: candidate => variationWorkflow.toggleCandidateGhost(candidate),
     startTraining,
     exitBranch,
     nextTraining,
@@ -775,8 +714,8 @@
     exit: exitPositionEditor,
   });
   variationView.bind({
-    startCurrent: startVariationCurrent,
-    resumeSaved: resumeVariation,
+    startCurrent: () => variationWorkflow.startCurrent(),
+    resumeSaved: () => variationWorkflow.resumeSaved(),
     select: id => variationController.select(id),
     parent: () => variationController.parent(),
     root: () => variationController.root(),
@@ -784,7 +723,7 @@
     rename: label => variationController.rename(label),
     toggleFavorite: () => variationController.toggleFavorite(),
     removeCurrent: () => variationController.removeCurrent(),
-    exit: exitVariation,
+    exit: () => variationWorkflow.exit(),
   });
 
   refreshDerived();
@@ -822,10 +761,10 @@
     startPositionEditor,
     exitPositionEditor,
     startGameFromEditor,
-    startVariationCurrent,
-    startVariationFromReview,
-    resumeVariation,
-    exitVariation,
+    startVariationCurrent: () => variationWorkflow.startCurrent(),
+    startVariationFromReview: () => variationWorkflow.startFromReview(),
+    resumeVariation: () => variationWorkflow.resumeSaved(),
+    exitVariation: () => variationWorkflow.exit(),
     getGame: () => game,
     getSettings: () => ({ ...settings }),
     getPerformanceStats: () => ({
