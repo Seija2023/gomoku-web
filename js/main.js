@@ -17,6 +17,9 @@
   const insights = new G.UI.InsightsView(document);
   const settings = G.Storage.loadSettings();
   const analysisService = new G.Services.AnalysisService();
+  const derivedService = new G.Services.DerivedService();
+  const requestGate = new G.Services.RequestGate();
+  const { RenderFlags, hasRenderFlag } = G.AppCore;
   let trainingProgress = G.Storage.loadTrainingProgress();
 
   let aiThinking = false;
@@ -91,6 +94,8 @@
     if (resultTimer) clearTimeout(resultTimer);
     aiTimer = null;
     resultTimer = null;
+    requestGate.invalidate('ai');
+    requestGate.invalidate('branch');
     aiThinking = false;
     branchState.aiThinking = false;
   }
@@ -172,19 +177,18 @@
 
   function refreshDerived() {
     const records = G.Storage.listHistory();
+    const derived = derivedService.training(records, trainingProgress);
     panel.renderHistory(records, openHistoryRecord);
-    availablePuzzles = G.Puzzles.generate(records);
+    availablePuzzles = derived.puzzles;
 
-    const trainingStats = G.TrainingScheduler.stats(availablePuzzles, trainingProgress);
-    insights.renderTrainingCount(trainingStats.due, trainingStats.total);
-    insights.renderTrainingStats(trainingStats);
-    insights.renderProfile(G.Profile.compute(records));
-    insights.renderOpenings(G.Openings.build(records));
+    insights.renderTrainingCount(derived.trainingStats.due, derived.trainingStats.total);
+    insights.renderTrainingStats(derived.trainingStats);
+    insights.renderProfile(derived.profile);
+    insights.renderOpenings(derived.openings);
   }
 
   function saveSettings() {
     G.Storage.saveSettings(settings);
-    insights.renderSettings(settings);
   }
 
   function buildCandidateAnalysis(board, moves, player) {
@@ -192,10 +196,7 @@
     return analysisService.candidates(board, moves, player, settings.persona, 3);
   }
 
-  function refresh() {
-    const shown = displayGame();
-    const displayed = displayedBoardAndMoves(shown);
-
+  function interactionState(shown) {
     let locked;
     let statusOverride = null;
     let thinking = aiThinking;
@@ -220,76 +221,102 @@
       locked = aiThinking || (game.mode === MODES.AI && game.currentPlayer === WHITE);
     }
 
-    let heatmap = [];
-    if (settings.heatmap && !training.active && displayed.moves.length) {
-      heatmap = analysisService.heatmap(displayed.board, displayed.moves, settings.heatmapMode);
+    return { locked, statusOverride, thinking };
+  }
+
+  function refresh(mask = RenderFlags.ALL) {
+    const needsDisplayed =
+      hasRenderFlag(mask, RenderFlags.BOARD)
+      || hasRenderFlag(mask, RenderFlags.ANALYSIS);
+    const shown = displayGame();
+    const displayed = needsDisplayed ? displayedBoardAndMoves(shown) : null;
+    const state =
+      hasRenderFlag(mask, RenderFlags.BOARD)
+      || hasRenderFlag(mask, RenderFlags.STATUS)
+        ? interactionState(shown)
+        : null;
+
+    if (hasRenderFlag(mask, RenderFlags.BOARD)) {
+      let heatmap = [];
+      if (settings.heatmap && !training.active && displayed.moves.length) {
+        heatmap = analysisService.heatmap(displayed.board, displayed.moves, settings.heatmapMode);
+      }
+
+      const reviewIndex = review.active ? review.index : null;
+      const showWinningLine = review.active && review.index < shown.moves.length ? null : shown.winningLine;
+      const ghostEnabled = settings.ghost && !training.active && !review.active && !state.locked;
+
+      boardView.render(shown, {
+        locked: state.locked,
+        reviewIndex,
+        winningLine: showWinningLine,
+        heatmap,
+        ghostEnabled,
+        boardOverride: displayed.board,
+        movesOverride: displayed.moves,
+      });
     }
 
-    const reviewIndex = review.active ? review.index : null;
-    const showWinningLine = review.active && review.index < shown.moves.length ? null : shown.winningLine;
-    const ghostEnabled = settings.ghost && !training.active && !review.active && !locked;
-
-    boardView.render(shown, {
-      locked,
-      reviewIndex,
-      winningLine: showWinningLine,
-      heatmap,
-      ghostEnabled,
-      boardOverride: displayed.board,
-      movesOverride: displayed.moves,
-    });
-
-    let modePresentation = shown;
-    if (branchState.active) modePresentation = { ...shown, mode: MODES.AI };
-    panel.updateMode(modePresentation);
-    panel.updateStatus(
-      shown,
-      thinking,
-      audio.enabled,
-      review.active || branchState.active || training.active,
-      statusOverride,
-    );
-
-    insights.renderSettings(settings);
-    insights.renderExplanation(branchState.active ? branchState.lastInsight : lastAiInsight);
-
-    const candidatePlayer = training.active ? null : analysisPlayer(shown, displayed);
-    const candidates = candidatePlayer
-      ? buildCandidateAnalysis(displayed.board, displayed.moves, candidatePlayer)
-      : [];
-    insights.renderCandidates(candidates, candidatePlayer);
-
-    if (review.active) {
-      reviewView.show();
-      reviewView.render(
-        shown.moves,
-        review.index,
-        review.playing,
-        review.analysis,
-        seekReview,
-        review.keyOnly,
+    if (hasRenderFlag(mask, RenderFlags.STATUS)) {
+      const modePresentation = branchState.active ? { ...shown, mode: MODES.AI } : shown;
+      panel.updateMode(modePresentation);
+      panel.updateStatus(
+        shown,
+        state.thinking,
+        audio.enabled,
+        review.active || branchState.active || training.active,
+        state.statusOverride,
       );
-      advantageChart.set(review.advantage, review.index);
-    } else {
-      reviewView.hide();
-      advantageChart.set([], 0);
     }
 
-    if (branchState.active) {
-      insights.showBranch(branchState.originIndex, branchState.humanPlayer, branchState.shared);
-    } else {
-      insights.hideBranch();
+    if (hasRenderFlag(mask, RenderFlags.SETTINGS)) {
+      insights.renderSettings(settings);
     }
 
-    if (training.active) {
-      insights.showTraining(
-        training.puzzles[training.index],
-        training.index,
-        training.puzzles.length,
-        training.feedback,
-      );
-    } else {
-      insights.hideTraining();
+    if (hasRenderFlag(mask, RenderFlags.ANALYSIS)) {
+      insights.renderExplanation(branchState.active ? branchState.lastInsight : lastAiInsight);
+      const candidatePlayer = training.active ? null : analysisPlayer(shown, displayed);
+      const candidates = candidatePlayer
+        ? buildCandidateAnalysis(displayed.board, displayed.moves, candidatePlayer)
+        : [];
+      insights.renderCandidates(candidates, candidatePlayer);
+    }
+
+    if (hasRenderFlag(mask, RenderFlags.REVIEW)) {
+      if (review.active) {
+        reviewView.show();
+        reviewView.render(
+          shown.moves,
+          review.index,
+          review.playing,
+          review.analysis,
+          seekReview,
+          review.keyOnly,
+        );
+        advantageChart.set(review.advantage, review.index);
+      } else {
+        reviewView.hide();
+        advantageChart.set([], 0);
+      }
+    }
+
+    if (hasRenderFlag(mask, RenderFlags.OVERLAYS)) {
+      if (branchState.active) {
+        insights.showBranch(branchState.originIndex, branchState.humanPlayer, branchState.shared);
+      } else {
+        insights.hideBranch();
+      }
+
+      if (training.active) {
+        insights.showTraining(
+          training.puzzles[training.index],
+          training.index,
+          training.puzzles.length,
+          training.feedback,
+        );
+      } else {
+        insights.hideTraining();
+      }
     }
   }
 
@@ -337,6 +364,7 @@
   function finishGame() {
     G.Storage.clearCurrent();
     G.Storage.saveFinished(createRecord());
+    derivedService.invalidateHistory();
     refreshDerived();
     resultTimer = setTimeout(() => {
       resultTimer = null;
@@ -425,14 +453,16 @@
   }
 
   function scheduleAiMove() {
+    const requestId = requestGate.next('ai');
     aiThinking = true;
-    refresh();
+    refresh(RenderFlags.BOARD | RenderFlags.STATUS);
 
     aiTimer = setTimeout(() => {
       aiTimer = null;
+      if (!requestGate.isCurrent('ai', requestId)) return;
       if (game.gameOver || review.active || branchState.active || training.active || game.mode !== MODES.AI || game.currentPlayer !== WHITE) {
         aiThinking = false;
-        refresh();
+        refresh(RenderFlags.BOARD | RenderFlags.STATUS);
         return;
       }
 
@@ -443,12 +473,14 @@
         WHITE,
         settings.persona,
       );
+      if (!requestGate.isCurrent('ai', requestId)) return;
+
       aiThinking = false;
       if (detail.move) {
         lastAiInsight = { ...detail, move: { ...detail.move } };
         performMove(detail.move.r, detail.move.c);
       } else {
-        refresh();
+        refresh(RenderFlags.BOARD | RenderFlags.STATUS);
       }
     }, AI_DELAY_MS);
   }
@@ -459,19 +491,22 @@
     clearAiAndResultTimers();
     panel.hideResult();
 
-    if (wasOver && currentHistoryId) G.Storage.removeHistory(currentHistoryId);
+    if (wasOver && currentHistoryId) {
+      G.Storage.removeHistory(currentHistoryId);
+      derivedService.invalidateHistory();
+    }
     if (wasOver) currentHistoryId = null;
 
     game.undo();
     lastAiInsight = null;
     persistCurrent();
-    refreshDerived();
+    if (wasOver) refreshDerived();
     refresh();
   }
 
   function toggleSound() {
     audio.toggle();
-    refresh();
+    refresh(RenderFlags.STATUS);
   }
 
   function startReview(target = null, shared = false) {
@@ -497,7 +532,7 @@
     if (!review.active) return;
     stopReviewPlayback();
     review.index = Math.max(0, Math.min(index, review.target.moves.length));
-    refresh();
+    refresh(RenderFlags.BOARD | RenderFlags.ANALYSIS | RenderFlags.REVIEW);
   }
 
   function keyAnchors() {
@@ -530,7 +565,7 @@
     if (!review.active) return;
     review.keyOnly = !review.keyOnly;
     stopReviewPlayback();
-    refresh();
+    refresh(RenderFlags.REVIEW);
   }
 
   function nextAutoReviewIndex() {
@@ -548,7 +583,7 @@
     }
 
     review.index = nextAutoReviewIndex();
-    refresh();
+    refresh(RenderFlags.BOARD | RenderFlags.ANALYSIS | RenderFlags.REVIEW);
     review.timer = setTimeout(reviewStep, REVIEW_STEP_MS);
   }
 
@@ -556,13 +591,16 @@
     if (!review.active) return;
     if (review.playing) {
       stopReviewPlayback();
-      refresh();
+      refresh(RenderFlags.REVIEW);
       return;
     }
 
-    if (review.index >= review.target.moves.length) review.index = 0;
+    const restarted = review.index >= review.target.moves.length;
+    if (restarted) review.index = 0;
     review.playing = true;
-    refresh();
+    refresh(restarted
+      ? RenderFlags.BOARD | RenderFlags.ANALYSIS | RenderFlags.REVIEW
+      : RenderFlags.REVIEW);
     review.timer = setTimeout(reviewStep, 420);
   }
 
@@ -646,12 +684,10 @@
 
     if (result.win) {
       audio.playWin();
-      refresh();
       return;
     }
     if (result.draw) {
       audio.playDraw();
-      refresh();
       return;
     }
 
@@ -660,14 +696,16 @@
 
   function scheduleBranchAi() {
     if (!branchState.active || !branchState.game || branchState.game.gameOver) return;
+    const requestId = requestGate.next('branch');
     branchState.aiThinking = true;
-    refresh();
+    refresh(RenderFlags.BOARD | RenderFlags.STATUS);
 
     aiTimer = setTimeout(() => {
       aiTimer = null;
+      if (!requestGate.isCurrent('branch', requestId)) return;
       if (!branchState.active || !branchState.game || branchState.game.gameOver || branchState.game.currentPlayer !== branchState.aiPlayer) {
         branchState.aiThinking = false;
-        refresh();
+        refresh(RenderFlags.BOARD | RenderFlags.STATUS);
         return;
       }
 
@@ -678,8 +716,9 @@
         branchState.aiPlayer,
         settings.persona,
       );
-      branchState.aiThinking = false;
+      if (!requestGate.isCurrent('branch', requestId)) return;
 
+      branchState.aiThinking = false;
       if (detail.move) {
         branchState.lastInsight = { ...detail, move: { ...detail.move } };
         const result = branchState.game.play(detail.move.r, detail.move.c);
@@ -739,6 +778,7 @@
     training.target = makeTrainingTarget(puzzle, { r, c });
     trainingProgress = G.TrainingScheduler.update(trainingProgress, puzzle.id, result.correct);
     G.Storage.saveTrainingProgress(trainingProgress);
+    derivedService.invalidateTraining();
     refreshDerived();
     refresh();
   }
@@ -766,35 +806,36 @@
     if (!Object.values(AI_DIFFICULTIES).includes(value)) return;
     settings.difficulty = value;
     saveSettings();
-    refresh();
+    refresh(RenderFlags.SETTINGS);
   }
 
   function changePersona(value) {
     if (!Object.values(AI_PERSONAS).includes(value)) return;
     settings.persona = value;
     lastAiInsight = null;
+    boardView.clearGhost();
     saveSettings();
-    refresh();
+    refresh(RenderFlags.SETTINGS | RenderFlags.ANALYSIS);
   }
 
   function toggleHeatmap() {
     settings.heatmap = !settings.heatmap;
     saveSettings();
-    refresh();
+    refresh(RenderFlags.SETTINGS | RenderFlags.BOARD);
   }
 
   function changeHeatmapMode(value) {
     if (!['combined', 'black', 'white'].includes(value)) return;
     settings.heatmapMode = value;
     saveSettings();
-    refresh();
+    refresh(RenderFlags.SETTINGS | RenderFlags.BOARD);
   }
 
   function toggleGhost() {
     settings.ghost = !settings.ghost;
     boardView.clearGhost();
     saveSettings();
-    refresh();
+    refresh(RenderFlags.SETTINGS | RenderFlags.BOARD);
   }
 
   function copyText(text) {
@@ -912,7 +953,13 @@
     getSettings: () => ({ ...settings }),
     getPerformanceStats: () => ({
       analysis: analysisService.stats(),
+      derived: derivedService.stats(),
       board: boardView.stats(),
+      review: reviewView.stats(),
+      requests: {
+        ai: requestGate.current('ai'),
+        branch: requestGate.current('branch'),
+      },
     }),
   });
 })(window.Gomoku = window.Gomoku || {});
