@@ -44,6 +44,8 @@
   const positionEditorController = new G.Controllers.PositionEditorController({
     refresh,
     flags: RenderFlags,
+    aiClient,
+    settings,
   });
 
   const gameController = new G.Controllers.GameController({
@@ -147,8 +149,12 @@
     if (editor.active) {
       return {
         locked: false,
-        statusOverride: editor.analysisEnabled ? '摆局分析' : '自由摆局',
-        thinking: false,
+        statusOverride: editor.comparing
+          ? '反事实分析中'
+          : editor.compareMode
+            ? '选择要比较的下一手'
+            : editor.analysisEnabled ? '摆局分析' : '自由摆局',
+        thinking: editor.comparing,
       };
     }
 
@@ -225,6 +231,7 @@
         ghostEnabled,
         boardOverride: displayed.board,
         movesOverride: displayed.moves,
+        comparison: editor.active ? editor.comparison : null,
       });
     }
 
@@ -518,7 +525,11 @@
   }
 
   function startGameFromEditor(mode) {
-    if (!positionEditorController.state.active || !positionEditorController.canStart()) return false;
+    if (
+      !positionEditorController.state.active
+      || positionEditorController.state.comparing
+      || !positionEditorController.canStart()
+    ) return false;
     const position = positionEditorController.target();
     gameController.clearTimers();
     panel.hideResult();
@@ -633,6 +644,7 @@
     clear: () => positionEditorController.clear(),
     restore: () => positionEditorController.restore(),
     toggleAnalysis: () => positionEditorController.toggleAnalysis(),
+    toggleCompareMode: () => positionEditorController.toggleCompareMode(),
     startGame: startGameFromEditor,
     exit: exitPositionEditor,
   });
