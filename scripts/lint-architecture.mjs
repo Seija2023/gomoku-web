@@ -79,6 +79,7 @@ const requiredFiles = [
   '.gitattributes',
   '.gitignore',
   'CONTRIBUTING.md',
+  'SECURITY.md',
   'README.md',
   'docs/ARCHITECTURE.md',
   'docs/CHANGELOG.md',
