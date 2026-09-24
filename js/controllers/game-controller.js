@@ -69,8 +69,10 @@
 
     finishGame() {
       this.storage.clearCurrent();
-      this.storage.saveFinished(this.createRecord());
-      this.onHistoryChanged?.();
+      if (!this.game.customPosition) {
+        this.storage.saveFinished(this.createRecord());
+        this.onHistoryChanged?.();
+      }
 
       this.resultTimer = setTimeout(() => {
         this.resultTimer = null;
