@@ -70,6 +70,7 @@
       heatmap: false,
       heatmapMode: 'combined',
       ghost: true,
+      sound: true,
       workspace: 'game',
     };
     const current = read(SETTINGS_KEY, null);
