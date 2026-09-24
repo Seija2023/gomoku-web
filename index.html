@@ -33,6 +33,10 @@
       <span>已恢复上次未完成的对局。</span>
       <button id="resumeNoticeClose" type="button" aria-label="关闭提示">×</button>
     </div>
+    <div id="shareNotice" class="resume-notice hidden" role="status">
+      <span id="shareNoticeText">分享链接已复制。</span>
+      <button id="shareNoticeClose" type="button" aria-label="关闭提示">×</button>
+    </div>
 
     <section class="game-layout">
       <div class="board-column">
@@ -74,7 +78,7 @@
         <section id="reviewCard" class="review-card hidden">
           <div class="review-header">
             <div>
-              <p class="eyebrow">REVIEW</p>
+              <p class="eyebrow">REVIEW LAB</p>
               <h2>对局复盘</h2>
             </div>
             <button id="reviewExitBtn" type="button">退出复盘</button>
@@ -90,12 +94,23 @@
               <button id="reviewEndBtn" type="button">终局</button>
               <button id="reviewKeyOnlyBtn" type="button">只看关键手</button>
               <button id="reviewBranchBtn" class="primary" type="button">从此变招</button>
+              <button id="reviewShareBtn" type="button">分享整局</button>
+              <button id="reviewChallengeBtn" type="button">挑战此局面</button>
             </div>
           </div>
 
           <div class="review-timeline">
             <input id="reviewTimeline" type="range" min="0" max="0" value="0" aria-label="复盘时间轴" />
             <div id="reviewKeyMarkers" class="key-markers" aria-hidden="false"></div>
+          </div>
+
+          <div class="advantage-card">
+            <div class="advantage-header">
+              <strong>棋形优势曲线</strong>
+              <span id="advantageLabel">棋形优势指数：暂无数据</span>
+            </div>
+            <canvas id="advantageChart" class="advantage-chart" aria-label="棋形优势曲线"></canvas>
+            <p class="analysis-note">该指数来自本地启发式棋形评分，不是胜率。</p>
           </div>
 
           <div class="review-grid">
@@ -123,12 +138,25 @@
 
         <div class="panel-section">
           <h2>智能 AI</h2>
-          <label class="control-label" for="difficultySelect">难度</label>
-          <select id="difficultySelect" class="control-select">
-            <option value="easy">简单</option>
-            <option value="normal">普通</option>
-            <option value="hard">困难</option>
-          </select>
+          <div class="control-grid">
+            <label>
+              <span class="control-label">难度</span>
+              <select id="difficultySelect" class="control-select">
+                <option value="easy">简单</option>
+                <option value="normal">普通</option>
+                <option value="hard">困难</option>
+              </select>
+            </label>
+            <label>
+              <span class="control-label">棋风人格</span>
+              <select id="personaSelect" class="control-select">
+                <option value="balanced">均衡型</option>
+                <option value="attack">进攻型</option>
+                <option value="defense">防守型</option>
+                <option value="risky">冒险型</option>
+              </select>
+            </label>
+          </div>
 
           <div class="smart-actions">
             <button id="heatmapToggle" type="button" aria-pressed="false">热力图：关</button>
@@ -137,9 +165,19 @@
               <option value="black">黑棋进攻</option>
               <option value="white">白棋进攻</option>
             </select>
+            <button id="ghostToggle" type="button" aria-pressed="true">幽灵线：开</button>
           </div>
 
+          <p class="helper-text ghost-help">PC：悬停空点预览。手机：长按空点约 0.36 秒后拖动预览，松手不落子。</p>
           <div id="aiExplain" class="ai-explain">AI落子后，这里会显示它为什么选择该位置。</div>
+
+          <div class="candidate-section">
+            <div class="candidate-heading">
+              <strong>候选手 A / B / C</strong>
+              <span id="candidateSide" class="analysis-note"></span>
+            </div>
+            <div id="candidateCompare" class="candidate-compare"></div>
+          </div>
         </div>
 
         <div class="panel-section">
@@ -163,9 +201,17 @@
         <div class="panel-section">
           <h2>训练中心</h2>
           <button id="trainingBtn" class="wide-button" type="button">
-            我的残局训练 <span class="count-badge" id="trainingCount">0</span>
+            今日残局训练 <span class="count-badge" id="trainingCount">0</span>
           </button>
+          <div id="trainingStats" class="mini-stats"></div>
           <div id="profileContent" class="profile-content"></div>
+        </div>
+
+        <div class="panel-section">
+          <h2>个人开局库</h2>
+          <div id="openingLibrary" class="opening-library">
+            <p class="helper-text">完成更多棋局后会自动整理常用开局。</p>
+          </div>
         </div>
 
         <div class="panel-section">
@@ -192,12 +238,17 @@
   <script src="js/storage/storage.js" defer></script>
   <script src="js/analysis/analyzer.js" defer></script>
   <script src="js/analysis/heatmap.js" defer></script>
+  <script src="js/analysis/advantage.js" defer></script>
+  <script src="js/analysis/openings.js" defer></script>
   <script src="js/training/puzzles.js" defer></script>
   <script src="js/training/profile.js" defer></script>
+  <script src="js/training/scheduler.js" defer></script>
+  <script src="js/share/codec.js" defer></script>
   <script src="js/audio/audio.js" defer></script>
   <script src="js/ui/board.js" defer></script>
   <script src="js/ui/panel.js" defer></script>
   <script src="js/ui/review.js" defer></script>
+  <script src="js/ui/advantage-chart.js" defer></script>
   <script src="js/ui/insights.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
