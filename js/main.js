@@ -16,6 +16,7 @@
   const reviewView = new G.UI.ReviewView(document);
   const insights = new G.UI.InsightsView(document);
   const settings = G.Storage.loadSettings();
+  const analysisService = new G.Services.AnalysisService();
   let trainingProgress = G.Storage.loadTrainingProgress();
 
   let aiThinking = false;
@@ -69,7 +70,7 @@
   );
 
   function cloneMoves(moves) {
-    return (moves || []).map(move => ({ ...move }));
+    return G.Position.cloneMoves(moves || []);
   }
 
   function opponentOf(player) {
@@ -188,8 +189,7 @@
 
   function buildCandidateAnalysis(board, moves, player) {
     if (!player || !moves.length) return [];
-    const base = G.AI.compareCandidates(board, moves, player, settings.persona, 3);
-    return G.AISearch.enrichCandidates(board, moves, player, base, settings.persona);
+    return analysisService.candidates(board, moves, player, settings.persona, 3);
   }
 
   function refresh() {
@@ -222,7 +222,7 @@
 
     let heatmap = [];
     if (settings.heatmap && !training.active && displayed.moves.length) {
-      heatmap = G.Heatmap.generate(displayed.board, displayed.moves, settings.heatmapMode);
+      heatmap = analysisService.heatmap(displayed.board, displayed.moves, settings.heatmapMode);
     }
 
     const reviewIndex = review.active ? review.index : null;
@@ -298,7 +298,7 @@
     if (branchState.active && shown.currentPlayer !== branchState.humanPlayer) return null;
     if (!branchState.active && shown.mode === MODES.AI && shown.currentPlayer === WHITE) return null;
 
-    return G.AISearch.previewLine(
+    return analysisService.ghost(
       shown.board,
       shown.moves,
       r,
@@ -434,7 +434,7 @@
         return;
       }
 
-      const detail = G.AI.chooseMoveDetailed(
+      const detail = analysisService.chooseMove(
         game.board,
         game.moves,
         settings.difficulty,
@@ -478,7 +478,7 @@
     panel.hideResult();
     review.target = makeReviewTarget(target || game);
     review.analysis = G.Analyzer.analyze(review.target);
-    review.advantage = G.Advantage.series(review.target.moves);
+    review.advantage = analysisService.advantage(review.target.moves);
     review.index = review.target.moves.length;
     review.active = true;
     review.playing = false;
@@ -669,7 +669,7 @@
         return;
       }
 
-      const detail = G.AI.chooseMoveDetailed(
+      const detail = analysisService.chooseMove(
         branchState.game.board,
         branchState.game.moves,
         settings.difficulty,
