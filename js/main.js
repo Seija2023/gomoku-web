@@ -1,6 +1,6 @@
 (function (G) {
-  const { BLACK, WHITE, MODES, AI_DIFFICULTIES, AI_PERSONAS } = G.Config;
-  const { RenderFlags, hasRenderFlag } = G.AppCore;
+  const { WHITE, MODES, AI_DIFFICULTIES, AI_PERSONAS } = G.Config;
+  const { RenderFlags, Activities } = G.AppCore;
 
   const game = new G.Game.Game();
   const audio = new G.Audio.AudioManager();
@@ -9,7 +9,13 @@
   const insights = new G.UI.InsightsView(document);
   const positionEditorView = new G.UI.PositionEditorView(document);
   const variationView = new G.UI.VariationTreeView(document);
+  const workspaceView = new G.UI.WorkspaceView(document);
   const settings = G.Storage.loadSettings();
+
+  let renderCoordinator = null;
+  function refresh(mask = RenderFlags.ALL) {
+    renderCoordinator?.refresh(mask);
+  }
 
   const analysisService = new G.Services.AnalysisService();
   const derivedService = new G.Services.DerivedService();
@@ -60,6 +66,22 @@
     flags: RenderFlags,
   });
 
+  const workspaceManager = new G.AppCore.WorkspaceManager({
+    controllers: {
+      review: reviewController,
+      branch: branchController,
+      training: trainingController,
+      positionEditor: positionEditorController,
+      variation: variationController,
+    },
+    initialWorkspace: settings.workspace,
+    onWorkspaceChange: workspace => {
+      settings.workspace = workspace;
+      G.Storage.saveSettings(settings);
+      refresh(RenderFlags.STATUS | RenderFlags.SETTINGS | RenderFlags.ANALYSIS | RenderFlags.OVERLAYS);
+    },
+  });
+
   const gameController = new G.Controllers.GameController({
     game,
     settings,
@@ -69,13 +91,7 @@
     storage: G.Storage,
     refresh,
     flags: RenderFlags,
-    isSpecialActive: () => (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-    ),
+    isSpecialActive: () => workspaceManager.isSpecialActive(),
     onHistoryChanged: () => {
       derivedService.invalidateHistory();
       refreshDerived();
@@ -99,6 +115,7 @@
     panel,
     boardView,
     settings,
+    workspace: workspaceManager,
     refresh,
     flags: RenderFlags,
   });
@@ -114,6 +131,7 @@
     variationWorkflow,
     panel,
     refresh,
+    workspace: workspaceManager,
     getPuzzles: () => availablePuzzles,
     getMistakes: () => availableMistakes,
   });
@@ -123,6 +141,31 @@
     document.getElementById('advantageLabel'),
     index => reviewController.seek(index),
   );
+
+  renderCoordinator = new G.AppCore.RenderCoordinator({
+    game,
+    gameController,
+    workspace: workspaceManager,
+    controllers: {
+      review: reviewController,
+      branch: branchController,
+      training: trainingController,
+      positionEditor: positionEditorController,
+      variation: variationController,
+    },
+    boardView,
+    panel,
+    reviewView,
+    insights,
+    positionEditorView,
+    variationView,
+    workspaceView,
+    advantageChart,
+    aiClient,
+    audio,
+    settings,
+    storage: G.Storage,
+  });
 
   function clearHash() {
     if (!location.hash) return;
@@ -155,254 +198,12 @@
     insights.renderOpenings(derived.openings);
   }
 
-  function displayGame() {
-    if (variationController.state.active) return variationController.target();
-    if (positionEditorController.state.active) return positionEditorController.target();
-    if (trainingController.state.active) return trainingController.state.target;
-    if (branchController.state.active) return branchController.state.game;
-    if (reviewController.state.active) return reviewController.state.target;
-    return game;
-  }
-
-  function displayedBoardAndMoves(shown) {
-    const review = reviewController.state;
-    if (review.active) {
-      return {
-        board: G.History.boardAt(shown.moves, review.index),
-        moves: shown.moves.slice(0, review.index),
-      };
-    }
-    return { board: shown.board, moves: shown.moves };
-  }
-
-  function analysisPlayer(shown) {
-    const training = trainingController.state;
-    const review = reviewController.state;
-    const editor = positionEditorController.state;
-    const variation = variationController.state;
-
-    if (variation.active) return shown.currentPlayer;
-    if (editor.active) return editor.analysisEnabled ? shown.currentPlayer : null;
-    if (training.active) return training.puzzles[training.index]?.player || BLACK;
-    if (review.active) {
-      if (review.index >= shown.moves.length) return null;
-      return review.index % 2 === 0 ? BLACK : WHITE;
-    }
-    if (shown.gameOver) return null;
-    return shown.currentPlayer;
-  }
-
-  function interactionState(shown) {
-    const training = trainingController.state;
-    const branch = branchController.state;
-    const review = reviewController.state;
-    const editor = positionEditorController.state;
-    const variation = variationController.state;
-
-    if (variation.active) {
-      return {
-        locked: variation.expanding || shown.gameOver,
-        statusOverride: variation.expanding ? '变化树 AI 扩展中' : '变化树实验室',
-        thinking: variation.expanding,
-      };
-    }
-
-    if (editor.active) {
-      return {
-        locked: false,
-        statusOverride: editor.comparing
-          ? '反事实分析中'
-          : editor.compareMode
-            ? '选择要比较的下一手'
-            : editor.analysisEnabled ? '摆局分析' : '自由摆局',
-        thinking: editor.comparing,
-      };
-    }
-
-    if (training.active) {
-      return { locked: Boolean(training.feedback), statusOverride: '残局训练', thinking: false };
-    }
-
-    if (branch.active) {
-      const locked = branch.aiThinking
-        || branch.game.gameOver
-        || branch.game.currentPlayer !== branch.humanPlayer;
-      return {
-        locked,
-        statusOverride: branch.shared
-          ? (branch.aiThinking ? '挑战 AI 思考中' : '分享挑战')
-          : (branch.aiThinking ? '分支 AI 思考中' : '分支推演'),
-        thinking: branch.aiThinking,
-      };
-    }
-
-    if (review.active) {
-      return { locked: true, statusOverride: '复盘中', thinking: false };
-    }
-
-    return {
-      locked: gameController.aiThinking || (game.mode === MODES.AI && game.currentPlayer === WHITE),
-      statusOverride: null,
-      thinking: gameController.aiThinking,
-    };
-  }
-
-  function refresh(mask = RenderFlags.ALL) {
-    const review = reviewController.state;
-    const branch = branchController.state;
-    const training = trainingController.state;
-    const editor = positionEditorController.state;
-    const variation = variationController.state;
-    const shown = displayGame();
-
-    const needsDisplayed =
-      hasRenderFlag(mask, RenderFlags.BOARD)
-      || hasRenderFlag(mask, RenderFlags.ANALYSIS);
-    const displayed = needsDisplayed ? displayedBoardAndMoves(shown) : null;
-
-    const needsInteraction =
-      hasRenderFlag(mask, RenderFlags.BOARD)
-      || hasRenderFlag(mask, RenderFlags.STATUS);
-    const state = needsInteraction ? interactionState(shown) : null;
-
-    if (hasRenderFlag(mask, RenderFlags.BOARD)) {
-      let heatmap = [];
-      if (settings.heatmap && !training.active && !editor.active && G.Position.countStones(displayed.board)) {
-        heatmap = aiClient.heatmap({
-          board: displayed.board,
-          moves: displayed.moves,
-          mode: settings.heatmapMode,
-        });
-      }
-
-      const reviewIndex = review.active ? review.index : null;
-      const showWinningLine = review.active && review.index < shown.moves.length
-        ? null
-        : shown.winningLine;
-      const ghostEnabled = settings.ghost
-        && !training.active
-        && !review.active
-        && !editor.active
-        && !state.locked;
-
-      boardView.render(shown, {
-        locked: state.locked,
-        reviewIndex,
-        winningLine: showWinningLine,
-        heatmap,
-        ghostEnabled,
-        boardOverride: displayed.board,
-        movesOverride: displayed.moves,
-        comparison: editor.active ? editor.comparison : null,
-      });
-    }
-
-    if (hasRenderFlag(mask, RenderFlags.STATUS)) {
-      const modePresentation = branch.active
-        ? { ...shown, mode: MODES.AI }
-        : variation.active ? { ...shown, mode: game.mode } : shown;
-      panel.updateMode(modePresentation);
-      panel.updateStatus(
-        shown,
-        state.thinking,
-        audio.enabled,
-        review.active || branch.active || training.active || editor.active || variation.active,
-        state.statusOverride,
-      );
-      const progress = aiClient.progress?.() || null;
-      insights.renderSearchStatus(progress);
-      insights.renderSearchInspector(aiClient.searchTrace?.() || [], progress);
-    }
-
-    if (hasRenderFlag(mask, RenderFlags.SETTINGS)) {
-      insights.renderSettings(settings);
-    }
-
-    if (hasRenderFlag(mask, RenderFlags.ANALYSIS)) {
-      insights.renderExplanation(branch.active ? branch.lastInsight : gameController.lastAiInsight);
-      const player = training.active ? null : analysisPlayer(shown);
-      const canAnalyze = editor.active
-        ? editor.analysisEnabled
-        : G.Position.countStones(displayed.board) > 0;
-      const candidates = player && canAnalyze
-        ? aiClient.candidates({
-            board: displayed.board,
-            moves: displayed.moves,
-            player,
-            persona: settings.persona,
-            limit: 3,
-          })
-        : [];
-      insights.renderCandidates(candidates, player, boardView.pinnedKey());
-    }
-
-    if (hasRenderFlag(mask, RenderFlags.REVIEW)) {
-      if (review.active) {
-        reviewView.show();
-        reviewView.render(
-          shown.moves,
-          review.index,
-          review.playing,
-          review.analysis,
-          index => reviewController.seek(index),
-          review.keyOnly,
-        );
-        advantageChart.set(review.advantage, review.index);
-      } else {
-        reviewView.hide();
-        advantageChart.set([], 0);
-      }
-    }
-
-    if (hasRenderFlag(mask, RenderFlags.OVERLAYS)) {
-      if (branch.active) {
-        insights.showBranch(branch.originIndex, branch.humanPlayer, branch.shared);
-      } else {
-        insights.hideBranch();
-      }
-
-      if (training.active) {
-        insights.showTraining(training);
-      } else {
-        insights.hideTraining();
-      }
-
-      positionEditorView.render(editor, positionEditorController.canStart());
-      variationView.render(variation);
-      variationView.renderSavedAvailability(Boolean(G.Storage.loadVariationTree()), variation.active);
-    }
-  }
-
   function handleCellPreview(r, c) {
-    const review = reviewController.state;
-    const training = trainingController.state;
-    const branch = branchController.state;
-    const editor = positionEditorController.state;
-    const variation = variationController.state;
-
-    if (!settings.ghost || review.active || training.active || editor.active) return null;
-    const shown = displayGame();
-    if (!shown || shown.gameOver || shown.board[r]?.[c] !== 0) return null;
-    if (variation.active && variation.expanding) return null;
-    if (branch.active && shown.currentPlayer !== branch.humanPlayer) return null;
-    if (!variation.active && !branch.active && shown.mode === MODES.AI && shown.currentPlayer === WHITE) return null;
-
-    return aiClient.preview({
-      board: shown.board,
-      moves: shown.moves,
-      r,
-      c,
-      player: shown.currentPlayer,
-      persona: settings.persona,
-    });
+    return renderCoordinator?.previewAt(r, c) || null;
   }
 
   function resetSpecialModes() {
-    reviewController.reset();
-    branchController.reset();
-    trainingController.reset();
-    positionEditorController.reset();
-    variationController.reset();
+    workspaceManager.resetSpecialModes();
     boardView.clearGhost();
   }
 
