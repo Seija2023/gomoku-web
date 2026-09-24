@@ -40,7 +40,9 @@
       row.mastery = row.puzzles ? Math.round((row.mastered / row.puzzles) * 100) : 0;
       const errorPressure = row.mistakes * 2 + row.wrong * 3;
       const learningCredit = row.correct + row.mastered * 2;
-      row.weakness = Math.max(0, errorPressure - learningCredit + row.priority);
+      row.weakness = errorPressure > 0
+        ? Math.max(0, errorPressure - learningCredit + row.priority)
+        : 0;
     }
 
     return [...map.values()].sort((a, b) =>
@@ -94,7 +96,7 @@
     const accuracy = totalAttempts ? Math.round(((best + good) / totalAttempts) * 100) : 0;
     return {
       categories,
-      topWeakness: categories[0] || null,
+      topWeakness: categories.find(item => item.weakness > 0 || item.mistakes > 0) || null,
       recentMistakes: trainableMistakes.slice(0, 6),
       trainableMistakes: trainableMistakes.length,
       totalMistakes: (mistakes || []).length,
