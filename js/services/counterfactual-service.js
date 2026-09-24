@@ -46,7 +46,7 @@
         return {
           ...base,
           score: Math.round(base.score),
-          adjustedScore: Math.round(base.score),
+          adjustedScore: G.AISearch?.WIN_SCORE || Math.round(base.score),
           reply: null,
           replyScore: 0,
           followUp: null,
