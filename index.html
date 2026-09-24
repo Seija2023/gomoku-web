@@ -45,6 +45,36 @@
           <button id="branchExitBtn" type="button">返回原局</button>
         </div>
 
+        <section id="variationCard" class="variation-card hidden">
+          <div class="variation-header">
+            <div>
+              <p class="eyebrow">VARIATION TREE</p>
+              <strong>变化树实验室</strong>
+            </div>
+            <button id="variationExitBtn" type="button">退出变化树</button>
+          </div>
+          <p id="variationSummary" class="variation-summary"></p>
+          <div class="variation-toolbar">
+            <button id="variationRootBtn" type="button">回到根节点</button>
+            <button id="variationParentBtn" type="button">返回父节点</button>
+            <button id="variationExpandBtn" class="primary" type="button">AI 扩展候选</button>
+            <button id="variationFavoriteBtn" type="button" aria-pressed="false">☆ 收藏</button>
+            <button id="variationDeleteBtn" type="button">删除当前分支</button>
+          </div>
+          <div class="variation-name-row">
+            <input id="variationNameInput" type="text" maxlength="36" aria-label="当前变化节点名称" />
+            <button id="variationSaveNameBtn" type="button">保存名称</button>
+          </div>
+          <div class="variation-section">
+            <span class="control-label">当前节点的子分支</span>
+            <div id="variationChildren" class="variation-children"></div>
+          </div>
+          <div class="variation-section">
+            <span class="control-label">完整变化树</span>
+            <div id="variationTreeList" class="variation-tree-list"></div>
+          </div>
+        </section>
+
         <div id="trainingCard" class="training-card hidden">
           <div>
             <p class="eyebrow">TRAINING</p>
@@ -156,7 +186,7 @@
               <button id="reviewNextBtn" type="button">下一步</button>
               <button id="reviewEndBtn" type="button">终局</button>
               <button id="reviewKeyOnlyBtn" type="button">只看关键手</button>
-              <button id="reviewBranchBtn" class="primary" type="button">从此变招</button>
+              <button id="reviewBranchBtn" class="primary" type="button">变化树分析</button>
               <button id="reviewShareBtn" type="button">分享整局</button>
               <button id="reviewChallengeBtn" type="button">挑战此局面</button>
             </div>
@@ -202,7 +232,9 @@
         <div class="panel-section">
           <h2>棋局实验室</h2>
           <button id="positionEditorBtn" class="wide-button" type="button">自由摆局 · Position Editor</button>
-          <p class="helper-text">自由放置黑白棋、指定下一手，并从任意非终局局面继续对弈或调用本地 AI 分析。</p>
+          <button id="variationStartBtn" class="wide-button lab-secondary" type="button">变化树实验室 · Variation Tree</button>
+          <button id="variationResumeBtn" class="wide-button lab-secondary" type="button">继续上次变化树</button>
+          <p class="helper-text">自由摆局用于构造局面；变化树用于保存多个候选分支、AI 主变化和手动尝试，并可随时返回任意节点继续分析。</p>
         </div>
 
         <div class="panel-section">
@@ -240,6 +272,14 @@
           <p class="helper-text ghost-help">PC：悬停空点预览。手机：长按空点约 0.36 秒后拖动预览，松手不落子。</p>
           <div id="aiExplain" class="ai-explain">AI落子后，这里会显示它为什么选择该位置。</div>
           <div id="aiSearchStatus" class="ai-search-status hidden" aria-live="polite"></div>
+          <section id="searchInspector" class="search-inspector hidden">
+            <div class="search-inspector-head">
+              <strong>AI Search Inspector</strong>
+              <span id="searchStability" class="analysis-note"></span>
+            </div>
+            <div id="searchInspectorMetrics" class="search-inspector-metrics"></div>
+            <div id="searchDepthHistory" class="search-depth-history"></div>
+          </section>
 
           <div class="candidate-section">
             <div class="candidate-heading">
@@ -308,6 +348,7 @@
   <script src="js/ai/search.js" defer></script>
   <script src="js/game/game.js" defer></script>
   <script src="js/game/history.js" defer></script>
+  <script src="js/lab/variation-tree.js" defer></script>
   <script src="js/storage/migrations.js" defer></script>
   <script src="js/storage/storage.js" defer></script>
   <script src="js/analysis/analyzer.js" defer></script>
@@ -331,12 +372,14 @@
   <script src="js/ui/advantage-chart.js" defer></script>
   <script src="js/ui/insights.js" defer></script>
   <script src="js/ui/position-editor.js" defer></script>
+  <script src="js/ui/variation-tree.js" defer></script>
   <script src="js/controllers/review-controller.js" defer></script>
   <script src="js/controllers/training-controller.js" defer></script>
   <script src="js/controllers/share-controller.js" defer></script>
   <script src="js/controllers/game-controller.js" defer></script>
   <script src="js/controllers/branch-controller.js" defer></script>
   <script src="js/controllers/position-editor-controller.js" defer></script>
+  <script src="js/controllers/variation-controller.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>
