@@ -8,10 +8,11 @@ await import('../js/core/rules.js');
 const { Rules, Config } = globalThis.Gomoku;
 const emptyBoard = () => Array.from({ length: Config.SIZE }, () => Array(Config.SIZE).fill(0));
 
-test('横向五连判胜', () => {
+test('横向五连判胜并返回胜利线', () => {
   const board = emptyBoard();
   for (let c = 2; c <= 6; c += 1) board[7][c] = Config.BLACK;
   assert.equal(Rules.hasWon(board, 7, 4, Config.BLACK), true);
+  assert.equal(Rules.findWinningLine(board, 7, 4, Config.BLACK).length, 5);
 });
 
 test('纵向五连判胜', () => {
@@ -35,4 +36,5 @@ test('四连不会误判为胜利', () => {
   const board = emptyBoard();
   for (let c = 0; c < 4; c += 1) board[0][c] = Config.BLACK;
   assert.equal(Rules.hasWon(board, 0, 2, Config.BLACK), false);
+  assert.equal(Rules.findWinningLine(board, 0, 2, Config.BLACK), null);
 });
