@@ -6,6 +6,8 @@ const files = [
   '../js/config.js',
   '../js/core/rules.js',
   '../js/app/render-flags.js',
+  '../js/app/workspace-manager.js',
+  '../js/app/session-workflow.js',
   '../js/game/position.js',
   '../js/game/editable-position.js',
   '../js/ai/evaluator.js',
@@ -38,6 +40,7 @@ const files = [
   '../js/share/codec.js',
   '../js/audio/audio.js',
   '../js/ui/board.js',
+  '../js/ui/workspace.js',
   '../js/ui/panel.js',
   '../js/ui/review.js',
   '../js/ui/advantage-chart.js',
@@ -51,6 +54,7 @@ const files = [
   '../js/controllers/branch-controller.js',
   '../js/controllers/position-editor-controller.js',
   '../js/controllers/variation-controller.js',
+  '../js/app/render-coordinator.js',
   '../js/main.js',
 ];
 
