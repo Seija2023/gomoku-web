@@ -167,14 +167,18 @@
     storage: G.Storage,
   });
 
-  function clearHash() {
-    if (!location.hash) return;
-    try {
-      history.replaceState(null, '', `${location.pathname}${location.search}`);
-    } catch {
-      location.hash = '';
-    }
-  }
+  const sessionWorkflow = new G.AppCore.SessionWorkflow({
+    game,
+    gameController,
+    workspace: workspaceManager,
+    reviewController,
+    branchController,
+    positionEditorController,
+    panel,
+    boardView,
+    storage: G.Storage,
+    refresh,
+  });
 
   function refreshTrainingDerived(records = G.Storage.listHistory()) {
     const derived = derivedService.training(records, trainingController.progress);
@@ -200,33 +204,6 @@
 
   function handleCellPreview(r, c) {
     return renderCoordinator?.previewAt(r, c) || null;
-  }
-
-  function resetSpecialModes() {
-    workspaceManager.resetSpecialModes();
-    boardView.clearGhost();
-  }
-
-  function restart() {
-    gameController.clearTimers();
-    resetSpecialModes();
-    panel.hideResult();
-    G.Storage.clearCurrent();
-    gameController.resetMetadata();
-    clearHash();
-    game.reset();
-    refresh();
-  }
-
-  function setMode(mode) {
-    if (!workspaceManager.canEnterFromGame() || game.mode === mode) return;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    G.Storage.clearCurrent();
-    gameController.resetMetadata();
-    game.setMode(mode);
-    refresh();
   }
 
   function handleCellClick(r, c) {
@@ -267,101 +244,8 @@
     refresh(RenderFlags.STATUS);
   }
 
-  function startReview(target = null, shared = false) {
-    if (!workspaceManager.canEnterFromGame()) return false;
-    if (!target && game.customPosition) return false;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    reviewController.start(target || game, shared);
-    refresh();
-    return true;
-  }
-
   function openHistoryRecord(record) {
-    startReview(record);
-  }
-
-  function exitReview() {
-    const result = reviewController.exit();
-    if (!result.exited) return;
-    if (result.shared) clearHash();
-    refresh();
-
-    if (game.gameOver) panel.showResult(game);
-    if (game.mode === MODES.AI && game.currentPlayer === WHITE && !game.gameOver) {
-      gameController.scheduleAiMove();
-    }
-  }
-
-  function startSharedChallenge(payload) {
-    gameController.clearTimers();
-    if (!branchController.startShared(payload)) return false;
-    reviewController.reset();
-    panel.hideResult();
-    refresh();
-    return true;
-  }
-
-  function exitBranch() {
-    const result = branchController.exit();
-    if (!result.exited) return;
-
-    if (result.shared) {
-      clearHash();
-      game.reset();
-      refresh();
-      return;
-    }
-
-    reviewController.resume();
-    refresh();
-  }
-
-  function startPositionEditor() {
-    if (!workspaceManager.canEnterFromGame()) return false;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    boardView.clearGhost();
-    if (!positionEditorController.start(game)) return false;
-    refresh();
-    return true;
-  }
-
-  function exitPositionEditor() {
-    if (!positionEditorController.exit()) return false;
-    refresh();
-
-    if (game.gameOver) panel.showResult(game);
-    else if (game.mode === MODES.AI && game.currentPlayer === WHITE) {
-      gameController.scheduleAiMove();
-    }
-    return true;
-  }
-
-  function startGameFromEditor(mode) {
-    if (
-      !workspaceManager.isActivity(Activities.POSITION_EDITOR)
-      || positionEditorController.state.comparing
-      || !positionEditorController.canStart()
-    ) return false;
-    const position = positionEditorController.target();
-    gameController.clearTimers();
-    panel.hideResult();
-    G.Storage.clearCurrent();
-    gameController.resetMetadata();
-    clearHash();
-
-    if (!game.loadPosition(position, mode)) return false;
-    positionEditorController.exit();
-    G.Storage.saveCurrent(game.snapshot());
-    refresh();
-
-    if (game.mode === MODES.AI && game.currentPlayer === WHITE) {
-      gameController.scheduleAiMove();
-    }
-    return true;
+    sessionWorkflow.startReview(record);
   }
 
   function saveSettings() {
@@ -435,13 +319,19 @@
       refresh(RenderFlags.STATUS | RenderFlags.SETTINGS | RenderFlags.ANALYSIS | RenderFlags.OVERLAYS);
     }
   });
-  panel.bind({ undo, toggleSound, restart, setMode, startReview });
+  panel.bind({
+    undo,
+    toggleSound,
+    restart: () => sessionWorkflow.restart(),
+    setMode: mode => sessionWorkflow.setMode(mode),
+    startReview: () => sessionWorkflow.startReview(),
+  });
   reviewView.bind({
     seek: index => reviewController.seek(index),
     seekRelative: delta => reviewController.seekRelative(delta),
     seekEnd: () => reviewController.seekEnd(),
     togglePlay: () => reviewController.togglePlay(),
-    exit: exitReview,
+    exit: () => sessionWorkflow.exitReview(),
     startBranch: () => variationWorkflow.startFromReview(),
     toggleKeyOnly: () => reviewController.toggleKeyOnly(),
     shareGame: shareReviewGame,
@@ -458,20 +348,20 @@
     startMistakeTraining: () => trainingWorkflow.startMistakes(),
     startMistake: id => trainingWorkflow.startOne(id),
     openTrainingVariation: () => trainingWorkflow.openVariation(),
-    exitBranch,
+    exitBranch: () => sessionWorkflow.exitBranch(),
     nextTraining: () => trainingWorkflow.next(),
     exitTraining: () => trainingWorkflow.exit(),
   });
   positionEditorView.bind({
-    start: startPositionEditor,
+    start: () => sessionWorkflow.startPositionEditor(),
     setTool: tool => positionEditorController.setTool(tool),
     setNextPlayer: player => positionEditorController.setNextPlayer(player),
     clear: () => positionEditorController.clear(),
     restore: () => positionEditorController.restore(),
     toggleAnalysis: () => positionEditorController.toggleAnalysis(),
     toggleCompareMode: () => positionEditorController.toggleCompareMode(),
-    startGame: startGameFromEditor,
-    exit: exitPositionEditor,
+    startGame: mode => sessionWorkflow.startGameFromEditor(mode),
+    exit: () => sessionWorkflow.exitPositionEditor(),
   });
   variationView.bind({
     startCurrent: () => variationWorkflow.startCurrent(),
@@ -503,8 +393,8 @@
 
   const shared = G.ShareCodec.parseHash();
   if (shared?.kind === 'game') {
-    startReview(shared, true);
-  } else if (shared?.kind === 'challenge' && startSharedChallenge(shared)) {
+    sessionWorkflow.startReview(shared, true);
+  } else if (shared?.kind === 'challenge' && sessionWorkflow.startSharedChallenge(shared)) {
     insights.showShareNotice('已进入分享挑战：请从当前局面继续。');
   } else {
     const saved = G.Storage.loadCurrent();
@@ -516,25 +406,25 @@
       }
     } else {
       G.Storage.clearCurrent();
-      restart();
+      sessionWorkflow.restart();
     }
   }
 
   G.App = Object.freeze({
-    restart,
-    setMode,
+    restart: () => sessionWorkflow.restart(),
+    setMode: mode => sessionWorkflow.setMode(mode),
     undo,
-    startReview,
-    exitReview,
+    startReview: (target, shared) => sessionWorkflow.startReview(target, shared),
+    exitReview: () => sessionWorkflow.exitReview(),
     startTraining: () => trainingWorkflow.startAdaptive(),
     startMistakeTraining: () => trainingWorkflow.startMistakes(),
     startMistake: id => trainingWorkflow.startOne(id),
     openTrainingVariation: () => trainingWorkflow.openVariation(),
     shareReviewGame,
     shareReviewChallenge,
-    startPositionEditor,
-    exitPositionEditor,
-    startGameFromEditor,
+    startPositionEditor: () => sessionWorkflow.startPositionEditor(),
+    exitPositionEditor: () => sessionWorkflow.exitPositionEditor(),
+    startGameFromEditor: mode => sessionWorkflow.startGameFromEditor(mode),
     startVariationCurrent: () => variationWorkflow.startCurrent(),
     startVariationFromReview: () => variationWorkflow.startFromReview(),
     resumeVariation: () => variationWorkflow.resumeSaved(),
