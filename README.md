@@ -145,6 +145,7 @@ The Standalone embeds application assets and a Blob Worker. CI uploads the gener
 - [Release Process](docs/RELEASING.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
 
 ## Data
 
