@@ -80,8 +80,8 @@
       if (this.longPressActive && now - this.lastPreviewAt < GHOST_THROTTLE_MS) return;
       this.lastPreviewAt = now;
       const preview = this.onCellPreview(r, c);
-      this.previewKey = key;
       this.showGhostLine(preview);
+      this.previewKey = key;
     }
 
     startTouchPreview(event, r, c, disabled) {
