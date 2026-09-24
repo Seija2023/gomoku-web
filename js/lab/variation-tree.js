@@ -297,20 +297,24 @@
 
       const visiting = new Set();
       const visited = new Set();
-      const validateGraph = id => {
+      const validateGraph = (id, depth = 0) => {
         if (visiting.has(id)) return false;
         if (visited.has(id)) return true;
         const node = tree.nodes.get(id);
         if (!node) return false;
+        node.depth = depth;
         visiting.add(id);
         for (const childId of node.children) {
-          if (!validateGraph(childId)) return false;
+          if (!validateGraph(childId, depth + 1)) return false;
         }
         visiting.delete(id);
         visited.add(id);
         return true;
       };
       if (!validateGraph('root') || visited.size !== tree.nodes.size) return null;
+      for (const node of tree.nodes.values()) {
+        if (!tree.position(node.id)) return null;
+      }
 
       const numericIds = [...tree.nodes.keys()]
         .map(id => /^n(\d+)$/.exec(id))
