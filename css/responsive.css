@@ -1,0 +1,29 @@
+@media (max-width: 900px) {
+  .game-layout { grid-template-columns: 1fr; }
+  .panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 22px;
+  }
+  .panel-section + .panel-section { margin: 0; padding: 0; border-top: 0; }
+  .rules { grid-column: 1 / -1; }
+}
+
+@media (max-width: 620px) {
+  .app { width: min(100% - 18px, 1180px); padding: 20px 0 32px; }
+  .hero { align-items: start; flex-direction: column; gap: 18px; }
+  .status-card { width: 100%; }
+  .board-wrap { padding: 20px; border-radius: 18px; }
+  .panel { display: block; }
+  .panel-section + .panel-section {
+    border-top: 1px solid rgba(55,39,21,.1);
+    margin-top: 18px;
+    padding-top: 18px;
+  }
+  .rules { grid-column: auto; }
+}
+
+@media (max-width: 390px) {
+  .board-wrap { padding: 17px; }
+  .app { width: min(100% - 12px, 1180px); }
+}
