@@ -6,7 +6,7 @@
     }
 
     async share(payload, label) {
-      const url = `${location.href.split('#')[0]}${G.ShareCodec.makeHash(payload)}`;
+      const url = this.adapter.urlForHash(G.ShareCodec.makeHash(payload));
       const native = await this.adapter.share({
         title: `五子棋 · ${label}`,
         text: label,
