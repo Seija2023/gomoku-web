@@ -1,4 +1,5 @@
 (function (G) {
+  G.AppCore.BootGuard.assertReady();
   const { WHITE, MODES, AI_DIFFICULTIES, AI_PERSONAS } = G.Config;
   const { RenderFlags, Activities } = G.AppCore;
 
