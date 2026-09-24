@@ -82,7 +82,15 @@
           reason: item.reason,
           personaLabel: item.personaLabel,
         }));
-        return G.AISearch.enrichCandidates(board, moves, player, base, persona);
+        return base.map(candidate => {
+          const preview = this.ghost(board, moves, candidate.r, candidate.c, player, persona);
+          return {
+            ...candidate,
+            reply: preview?.reply || null,
+            followUp: preview?.followUp || null,
+            line: preview?.line || [],
+          };
+        });
       }, 'result');
     }
 
