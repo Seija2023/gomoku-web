@@ -230,3 +230,13 @@
 .ghost-follow { opacity: .32; }
 
 .board.ghost-enabled .cell { touch-action: none; }
+
+.board-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.heat-layer {
+  z-index: 1;
+}
