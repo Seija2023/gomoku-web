@@ -8,6 +8,7 @@
 - v2.3.0：跨设备智能对弈实验室
 - v2.3.1：性能与扩展基础优化
 - v2.3.2：调度与扩展优化
+- v2.3.3：Controller 解耦与自动浏览器回归
 
 ## v2.3.1 新基础层
 
@@ -106,3 +107,32 @@ v2.3.1 暂不强制引入 Worker。原因是当前更高收益的重复计算和
 ### RequestGate
 
 `js/services/request-gate.js` 为 AI 请求提供版本号。切换模式、悔棋或离开分支后，旧请求即使稍后返回也不能再写入当前状态。当前同步 AI 已接入该机制，未来迁移 Web Worker 时可直接沿用。
+
+
+## v2.3.3 Controller 与 AI Client
+
+主要业务逻辑从 `main.js` 拆到：
+
+```text
+js/controllers/
+├── game-controller.js
+├── review-controller.js
+├── branch-controller.js
+├── training-controller.js
+└── share-controller.js
+```
+
+`main.js` 只保留依赖组装、跨 Controller 协调、统一渲染和公开 App API。新模式应优先新增独立 Controller，而不是继续向入口文件堆状态。
+
+`js/services/ai-client.js` 提供稳定 AI 调用层。当前实现仍在主线程执行，但 Controller 只依赖 Client 接口，并通过 RequestGate 处理过期结果。未来切换 Worker 时不需要重写游戏、分支或复盘 Controller。
+
+### 短浏览器 Smoke CI
+
+`scripts/smoke-browser.mjs` 使用 GitHub Runner 自带 Chrome 和 DevTools Protocol，不引入 Playwright/Puppeteer 依赖。CI 自动检查：
+
+- 225 个棋盘格正常加载
+- 落子后棋盘没有被重建
+- 人机模式 AI 能回应
+- 自动复盘棋子会推进
+- 自动复盘不会改变页面 scrollY
+- 复盘静态棋谱 DOM 不在每一步重复重建

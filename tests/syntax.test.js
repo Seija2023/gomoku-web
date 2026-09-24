@@ -19,6 +19,7 @@ const files = [
   '../js/analysis/openings.js',
   '../js/services/analysis-service.js',
   '../js/services/request-gate.js',
+  '../js/services/ai-client.js',
   '../js/training/puzzles.js',
   '../js/training/profile.js',
   '../js/training/scheduler.js',
@@ -30,6 +31,11 @@ const files = [
   '../js/ui/review.js',
   '../js/ui/advantage-chart.js',
   '../js/ui/insights.js',
+  '../js/controllers/review-controller.js',
+  '../js/controllers/training-controller.js',
+  '../js/controllers/share-controller.js',
+  '../js/controllers/game-controller.js',
+  '../js/controllers/branch-controller.js',
   '../js/main.js',
 ];
 

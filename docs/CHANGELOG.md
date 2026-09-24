@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.3.3
+
+### 架构
+
+- 将普通对局、复盘、分支、训练和分享拆分为独立 Controller。
+- `main.js` 从约 970 行缩减到约 590 行，主要负责依赖组装和跨模块协调。
+- 新增 `MainThreadAIClient`，为未来 Web Worker AI 保留稳定调用接口。
+- AI Client 继续沿用 RequestGate，旧异步结果不能写回新状态。
+
+### 自动回归
+
+- 新增依赖零第三方浏览器库的 Chrome Smoke Test。
+- CI 自动验证棋盘 225 格、实际落子、AI回应、增量棋盘初始化和自动复盘不滚屏。
+- 保持 v2.3.2 的主要功能、UI、手机 Ghost Line、历史数据和单文件构建兼容。
+
 ## v2.3.2
 
 ### 调度与性能
