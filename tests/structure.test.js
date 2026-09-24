@@ -45,6 +45,7 @@ test('入口文件加载 v2.8.0 Workspace & UX 2.0 模块', () => {
     'js/controllers/position-editor-controller.js',
     'js/controllers/variation-controller.js',
     'js/app/render-coordinator.js',
+    'js/app/boot-guard.js',
     'js/main.js',
   ]) assert.match(index, new RegExp(path.replace(/[./]/g, '\\$&')));
 });
@@ -209,4 +210,14 @@ test('RenderCoordinator 集中处理显示局面、交互状态和区域渲染',
   assert.match(source, /previewAt\(r, c\)/);
   assert.match(source, /refresh\(mask = RenderFlags\.ALL\)/);
   assert.match(source, /workspace\.activity\(\)/);
+});
+
+
+test('Boot Guard 会在模块顺序损坏时提供明确依赖诊断', async () => {
+  const source = await readFile(new URL('../js/app/boot-guard.js', import.meta.url), 'utf8');
+  assert.match(source, /Gomoku bootstrap dependency missing/);
+  assert.match(source, /AppCore\.WorkspaceManager/);
+  assert.match(source, /AppCore\.RenderCoordinator/);
+  assert.match(source, /UI\.WorkspaceView/);
+  assert.match(index, /js\/app\/boot-guard\.js/);
 });
