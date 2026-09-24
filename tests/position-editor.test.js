@@ -77,3 +77,41 @@ test('已有五连的自由摆局仍可编辑，但不能直接开始对局', ()
   controller.handleCell(7, 7);
   assert.equal(controller.canStart(), true);
 });
+
+
+test('PositionEditorController 比较模式不会改棋盘，并保存异步分析结果', async () => {
+  let refreshes = 0;
+  const aiClient = {
+    cancel: () => {},
+    compareMove: async context => ({
+      stale: false,
+      result: {
+        player: context.player,
+        userLine: { r: context.userMove.r, c: context.userMove.c, adjustedScore: 100 },
+        recommendedLine: { r: 7, c: 7, adjustedScore: 200 },
+        scoreDelta: 100,
+        reasons: ['推荐手综合评分更高。'],
+        sameMove: false,
+      },
+    }),
+  };
+  const controller = new G.Controllers.PositionEditorController({
+    refresh: () => { refreshes += 1; },
+    flags: G.AppCore.RenderFlags,
+    aiClient,
+    settings: { persona: G.Config.AI_PERSONAS.BALANCED },
+  });
+
+  const board = G.Position.emptyBoard();
+  board[6][6] = G.Config.BLACK;
+  controller.start({ board, currentPlayer: G.Config.WHITE });
+  controller.toggleCompareMode();
+
+  const before = G.Position.cloneBoard(controller.target().board);
+  assert.equal(await controller.handleCell(8, 8), true);
+  assert.deepEqual(controller.target().board, before);
+  assert.equal(controller.state.comparison.userLine.r, 8);
+  assert.equal(controller.state.comparison.recommendedLine.r, 7);
+  assert.equal(controller.state.comparing, false);
+  assert.ok(refreshes >= 3);
+});
