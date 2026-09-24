@@ -78,7 +78,10 @@
     resumeSaved() {
       const payload = this.storage.loadVariationTree();
       const tree = G.Lab.VariationTree.restore(payload);
-      if (!tree) return false;
+      if (!tree) {
+        this.storage.clearVariationTree();
+        return false;
+      }
       this.aiClient.cancel('variation');
       this.state = {
         active: true,
