@@ -7,6 +7,162 @@
   background: rgba(215, 166, 93, .18);
 }
 
+.resume-notice,
+.result-card,
+.review-card {
+  border: 1px solid rgba(55, 39, 21, .12);
+  background: rgba(255, 250, 242, .92);
+  box-shadow: var(--shadow);
+  border-radius: 20px;
+}
+
+.resume-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  color: #5f5549;
+}
+
+.resume-notice button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(143, 101, 53, .1);
+  color: #5f5549;
+}
+
+.board-column {
+  min-width: 0;
+}
+
+.result-card,
+.review-card {
+  margin-top: 18px;
+  padding: 20px;
+}
+
+.result-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.result-card h2,
+.review-card h2,
+.review-card h3 {
+  margin: 0;
+}
+
+.result-card p:not(.eyebrow) {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.result-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.result-actions button,
+.review-card button,
+.history-item {
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: #e9e1d6;
+  color: #2d2924;
+  font-weight: 700;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(55,39,21,.1);
+}
+
+.review-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-buttons button:disabled,
+.result-actions button:disabled,
+.review-card button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.review-grid > div {
+  min-width: 0;
+  padding: 15px;
+  border-radius: 14px;
+  background: rgba(143, 101, 53, .055);
+}
+
+.analysis-content {
+  color: #5d554c;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.analysis-content p {
+  margin: 8px 0;
+}
+
+.analysis-content ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.analysis-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.move-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  max-height: 270px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.move-item {
+  text-align: left;
+  font-size: 13px;
+}
+
+.move-item.active {
+  color: white;
+  background: #2e2b27;
+}
+
 .panel {
   padding: 22px;
   border-radius: 22px;
@@ -79,8 +235,7 @@
   gap: 10px;
 }
 
-.actions button,
-.modal button {
+.actions button {
   min-height: 44px;
   padding: 11px 15px;
   border-radius: 12px;
@@ -89,7 +244,8 @@
   font-weight: 700;
 }
 
-.actions button:disabled {
+.actions button:disabled,
+.mode-btn:disabled {
   opacity: .45;
   cursor: not-allowed;
 }
@@ -100,9 +256,31 @@ button.primary {
 }
 
 .actions button:not(:disabled):hover,
-.modal button:hover,
-.mode-btn:hover {
+.result-actions button:not(:disabled):hover,
+.review-card button:not(:disabled):hover,
+.mode-btn:not(:disabled):hover,
+.history-item:hover {
   filter: brightness(.97);
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+}
+
+.history-item span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .rules p {
@@ -110,33 +288,4 @@ button.primary {
   color: var(--muted);
   line-height: 1.7;
   font-size: 14px;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 18, 15, .52);
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  z-index: 10;
-}
-
-.modal-card {
-  width: min(410px, 100%);
-  padding: 30px;
-  text-align: center;
-  background: #fffaf2;
-  border-radius: 24px;
-  box-shadow: 0 25px 80px rgba(0,0,0,.25);
-}
-
-.modal-card h2 {
-  margin: 4px 0 8px;
-  font-size: 30px;
-}
-
-.modal-card p:not(.eyebrow) {
-  color: var(--muted);
-  margin: 0 0 22px;
 }
