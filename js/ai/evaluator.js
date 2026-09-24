@@ -69,14 +69,21 @@
     }
   }
 
-  function getCandidateMoves(board, moves, radius = 2) {
+  function getCandidateMoves(board, moves = [], radius = 2) {
     const size = board.length;
-    if (moves.length === 0) {
+    const occupied = [];
+    for (let r = 0; r < size; r += 1) {
+      for (let c = 0; c < size; c += 1) {
+        if (board[r][c] !== 0) occupied.push({ r, c });
+      }
+    }
+    if (occupied.length === 0) {
       const center = Math.floor(size / 2);
       return [{ r: center, c: center }];
     }
     const set = new Set();
-    for (const move of moves) {
+    const seeds = occupied.length ? occupied : moves;
+    for (const move of seeds) {
       for (let dr = -radius; dr <= radius; dr += 1) {
         for (let dc = -radius; dc <= radius; dc += 1) {
           const r = move.r + dr;
