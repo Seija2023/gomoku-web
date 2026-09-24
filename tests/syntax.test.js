@@ -14,6 +14,8 @@ const files = [
   '../js/ai/worker-runtime.js',
   '../js/game/game.js',
   '../js/game/history.js',
+  '../js/lab/variation-tree.js',
+  '../js/lab/variation-workflow.js',
   '../js/storage/migrations.js',
   '../js/storage/storage.js',
   '../js/analysis/analyzer.js',
@@ -37,12 +39,14 @@ const files = [
   '../js/ui/advantage-chart.js',
   '../js/ui/insights.js',
   '../js/ui/position-editor.js',
+  '../js/ui/variation-tree.js',
   '../js/controllers/review-controller.js',
   '../js/controllers/training-controller.js',
   '../js/controllers/share-controller.js',
   '../js/controllers/game-controller.js',
   '../js/controllers/branch-controller.js',
   '../js/controllers/position-editor-controller.js',
+  '../js/controllers/variation-controller.js',
   '../js/main.js',
 ];
 
