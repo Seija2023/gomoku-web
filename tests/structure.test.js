@@ -112,7 +112,7 @@ test('Standalone 构建会内嵌 Blob Worker 源码', async () => {
   const build = await readFile(new URL('../scripts/build-standalone.mjs', import.meta.url), 'utf8');
   assert.match(build, /GOMOKU_WORKER_SOURCE/);
   assert.match(build, /worker-runtime\.js/);
-  assert.match(build, /new Blob/);
+  assert.match(build, /workerSource/);
 });
 
 test('Local AI 2.0 包含迭代加深、置换表与 Worker fallback', async () => {
@@ -122,5 +122,6 @@ test('Local AI 2.0 包含迭代加深、置换表与 Worker fallback', async () 
   assert.match(search, /new Map\(\)/);
   assert.match(search, /tacticalCandidates/);
   assert.match(workerClient, /MainThreadAIClient/);
+  assert.match(workerClient, /new Blob/);
   assert.match(workerClient, /restartWorker/);
 });
