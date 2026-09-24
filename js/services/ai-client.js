@@ -150,6 +150,7 @@
 
     cancel(channel) {
       this.metrics.cancellations += 1;
+      if (this.latest?.channel === channel) this.latest = { ...this.latest, active: false };
       return this.gate.invalidate(channel);
     }
 
