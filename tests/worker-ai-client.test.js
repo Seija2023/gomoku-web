@@ -106,6 +106,9 @@ test('WorkerAIClient 使用 Worker 返回结果并上报搜索进度', async () 
   assert.equal(client.stats().fallbackRequests, 0);
   assert.ok(progress.some(item => item.active && item.depth === 3));
   assert.equal(client.progress().active, false);
+  assert.equal(client.searchTrace().length, 1);
+  assert.equal(client.searchTrace()[0].depth, 3);
+  assert.deepEqual(client.searchTrace()[0].bestMove, { r: 7, c: 7 });
   assert.equal(worker.terminated, false);
 });
 
