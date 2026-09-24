@@ -1,5 +1,9 @@
 (function (G) {
   class ShareAdapter {
+    urlForHash(hash) {
+      return `${location.href.split('#')[0]}${hash}`;
+    }
+
     async copyText(text) {
       if (navigator.clipboard?.writeText) {
         try {
