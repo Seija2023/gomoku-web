@@ -91,7 +91,10 @@
       if (!snapshot || !Array.isArray(snapshot.moves)) return false;
       const mode = snapshot.mode === MODES.AI ? MODES.AI : MODES.PVP;
       const validation = G.Position?.validateMoves?.(snapshot.moves);
-      if (validation && !validation.ok) return false;
+      if (validation && !validation.ok) {
+        this.reset(mode);
+        return false;
+      }
       this.reset(mode);
 
       for (const move of snapshot.moves) {
