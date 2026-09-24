@@ -12,6 +12,15 @@
       this.clearBtn = doc.getElementById('editorClearBtn');
       this.restoreBtn = doc.getElementById('editorRestoreBtn');
       this.analyzeBtn = doc.getElementById('editorAnalyzeBtn');
+      this.compareBtn = doc.getElementById('editorCompareBtn');
+      this.compareHint = doc.getElementById('editorCompareHint');
+      this.counterfactualCard = doc.getElementById('counterfactualCard');
+      this.counterfactualDelta = doc.getElementById('counterfactualDelta');
+      this.counterfactualUserMove = doc.getElementById('counterfactualUserMove');
+      this.counterfactualUserMeta = doc.getElementById('counterfactualUserMeta');
+      this.counterfactualAiMove = doc.getElementById('counterfactualAiMove');
+      this.counterfactualAiMeta = doc.getElementById('counterfactualAiMeta');
+      this.counterfactualReasons = doc.getElementById('counterfactualReasons');
       this.startPvpBtn = doc.getElementById('editorStartPvpBtn');
       this.startAiBtn = doc.getElementById('editorStartAiBtn');
       this.exitBtn = doc.getElementById('editorExitBtn');
@@ -27,9 +36,44 @@
       this.clearBtn.addEventListener('click', handlers.clear);
       this.restoreBtn.addEventListener('click', handlers.restore);
       this.analyzeBtn.addEventListener('click', handlers.toggleAnalysis);
+      this.compareBtn.addEventListener('click', handlers.toggleCompareMode);
       this.startPvpBtn.addEventListener('click', () => handlers.startGame(G.Config.MODES.PVP));
       this.startAiBtn.addEventListener('click', () => handlers.startGame(G.Config.MODES.AI));
       this.exitBtn.addEventListener('click', handlers.exit);
+    }
+
+    formatLine(item) {
+      if (!item) return '';
+      const reply = item.reply ? G.History.coordinate(item.reply) : '—';
+      const follow = item.followUp ? G.History.coordinate(item.followUp) : '—';
+      return `综合 ${item.adjustedScore} · 进攻 ${item.attackLevel} · 防守 ${item.defenseLevel} · 回应 ${reply} · 后续 ${follow}`;
+    }
+
+    renderComparison(comparison) {
+      const visible = Boolean(comparison);
+      this.counterfactualCard.classList.toggle('hidden', !visible);
+      if (!visible) return;
+
+      const user = comparison.userLine;
+      const ai = comparison.recommendedLine;
+      this.counterfactualUserMove.textContent = G.History.coordinate(user);
+      this.counterfactualAiMove.textContent = G.History.coordinate(ai);
+      this.counterfactualUserMeta.textContent = this.formatLine(user);
+      this.counterfactualAiMeta.textContent = this.formatLine(ai);
+
+      if (comparison.sameMove) {
+        this.counterfactualDelta.textContent = '与推荐一致';
+      } else {
+        const delta = Math.round(comparison.scoreDelta);
+        this.counterfactualDelta.textContent = delta > 0 ? `推荐 +${delta}` : `差距 ${delta}`;
+      }
+
+      this.counterfactualReasons.replaceChildren();
+      for (const reason of comparison.reasons || []) {
+        const p = document.createElement('p');
+        p.textContent = reason;
+        this.counterfactualReasons.appendChild(p);
+      }
     }
 
     render(state, canStart = false) {
@@ -52,6 +96,13 @@
       this.nextPlayer.value = String(state.editor.currentPlayer);
       this.analyzeBtn.textContent = `AI分析：${state.analysisEnabled ? '开' : '关'}`;
       this.analyzeBtn.setAttribute('aria-pressed', String(state.analysisEnabled));
+      this.compareBtn.textContent = state.comparing
+        ? '比较中…'
+        : state.compareMode ? '退出比较' : '比较下一手';
+      this.compareBtn.setAttribute('aria-pressed', String(state.compareMode));
+      this.compareBtn.disabled = state.comparing;
+      this.compareHint.classList.toggle('hidden', !state.compareMode);
+      this.renderComparison(state.comparison);
 
       const black = G.Position.countStones(state.editor.board, BLACK);
       const white = G.Position.countStones(state.editor.board, WHITE);
@@ -63,8 +114,8 @@
         else status += ' · 棋盘已满，可分析但不能直接开始对局';
       }
       this.summary.textContent = status;
-      this.startPvpBtn.disabled = !canStart;
-      this.startAiBtn.disabled = !canStart;
+      this.startPvpBtn.disabled = !canStart || state.comparing;
+      this.startAiBtn.disabled = !canStart || state.comparing;
     }
   }
 

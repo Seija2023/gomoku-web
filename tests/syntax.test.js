@@ -19,6 +19,7 @@ const files = [
   '../js/analysis/advantage.js',
   '../js/analysis/openings.js',
   '../js/services/analysis-service.js',
+  '../js/services/counterfactual-service.js',
   '../js/services/request-gate.js',
   '../js/services/ai-client.js',
   '../js/training/puzzles.js',

@@ -273,6 +273,7 @@
         ghostEnabled = true,
         boardOverride = null,
         movesOverride = null,
+        comparison = null,
       } = options;
 
       this.ghostEnabled = Boolean(ghostEnabled);
@@ -286,6 +287,8 @@
       const last = moves[moves.length - 1];
       const lastKey = last ? `${last.r},${last.c}` : '';
       const winningKeys = new Set((winningLine || []).map(cell => `${cell.r},${cell.c}`));
+      const comparisonUserKey = comparison?.userLine ? `${comparison.userLine.r},${comparison.userLine.c}` : '';
+      const comparisonAiKey = comparison?.recommendedLine ? `${comparison.recommendedLine.r},${comparison.recommendedLine.c}` : '';
       const disabled = locked || reviewMode || game.gameOver;
 
       for (let r = 0; r < SIZE; r += 1) {
@@ -305,6 +308,8 @@
             piece?.classList.toggle('winner', winningKeys.has(key));
           }
 
+          cell.classList.toggle('compare-user', key === comparisonUserKey);
+          cell.classList.toggle('compare-ai', key === comparisonAiKey);
           if (cell.disabled !== disabled) cell.disabled = disabled;
         }
       }

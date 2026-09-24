@@ -89,9 +89,35 @@
             <button id="editorClearBtn" type="button">清空棋盘</button>
             <button id="editorRestoreBtn" type="button">恢复原局面</button>
             <button id="editorAnalyzeBtn" type="button" aria-pressed="false">AI分析：关</button>
+            <button id="editorCompareBtn" type="button" aria-pressed="false">比较下一手</button>
             <button id="editorStartPvpBtn" class="primary" type="button">双人继续</button>
             <button id="editorStartAiBtn" class="primary" type="button">对战 AI</button>
           </div>
+
+          <p id="editorCompareHint" class="editor-compare-hint hidden">比较模式：点击棋盘任意空点作为“你的尝试”，不会实际落子。</p>
+          <section id="counterfactualCard" class="counterfactual-card hidden" aria-live="polite">
+            <div class="counterfactual-header">
+              <div>
+                <p class="eyebrow">COUNTERFACTUAL</p>
+                <strong>为什么这一步不如推荐手？</strong>
+              </div>
+              <span id="counterfactualDelta" class="counterfactual-delta"></span>
+            </div>
+            <div class="counterfactual-grid">
+              <article>
+                <span class="analysis-note">你的尝试</span>
+                <strong id="counterfactualUserMove">—</strong>
+                <div id="counterfactualUserMeta" class="counterfactual-meta"></div>
+              </article>
+              <article>
+                <span class="analysis-note">AI 推荐</span>
+                <strong id="counterfactualAiMove">—</strong>
+                <div id="counterfactualAiMeta" class="counterfactual-meta"></div>
+              </article>
+            </div>
+            <div id="counterfactualReasons" class="counterfactual-reasons"></div>
+            <p class="analysis-note">本地启发式比较：结合即时棋形、对手最佳回应与后续建议，不代表精确胜率。</p>
+          </section>
         </div>
 
         <div class="board-wrap">
@@ -288,6 +314,7 @@
   <script src="js/analysis/advantage.js" defer></script>
   <script src="js/analysis/openings.js" defer></script>
   <script src="js/services/analysis-service.js" defer></script>
+  <script src="js/services/counterfactual-service.js" defer></script>
   <script src="js/services/request-gate.js" defer></script>
   <script src="js/services/ai-client.js" defer></script>
   <script src="js/training/puzzles.js" defer></script>

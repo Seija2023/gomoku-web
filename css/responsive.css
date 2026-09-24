@@ -112,3 +112,18 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+@media (max-width: 640px) {
+  .counterfactual-header {
+    align-items: flex-start;
+  }
+
+  .counterfactual-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .counterfactual-grid article > strong {
+    font-size: 16px;
+  }
+}
