@@ -14,6 +14,7 @@ test('入口文件加载 v2.4.0 棋局实验室与控制器架构模块', () => 
     'js/game/editable-position.js',
     'js/storage/migrations.js',
     'js/services/analysis-service.js',
+    'js/services/counterfactual-service.js',
     'js/services/request-gate.js',
     'js/services/ai-client.js',
     'js/services/derived-service.js',
@@ -52,7 +53,8 @@ test('页面保留 v2.3 核心 PC 与手机控件', () => {
     'heatmapToggle','reviewTimeline','advantageChart','reviewShareBtn',
     'reviewChallengeBtn','trainingStats','openingLibrary','branchBar','trainingCard',
     'positionEditorBtn','positionEditorCard','editorToolBlack','editorToolWhite',
-    'editorToolErase','editorNextPlayer','editorStartPvpBtn','editorStartAiBtn'
+    'editorToolErase','editorNextPlayer','editorCompareBtn','counterfactualCard',
+    'counterfactualUserMove','counterfactualAiMove','editorStartPvpBtn','editorStartAiBtn'
   ]) assert.match(index, new RegExp(`id="${id}"`));
 });
 
