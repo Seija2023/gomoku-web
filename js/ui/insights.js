@@ -27,6 +27,7 @@
       this.shareNotice = doc.getElementById('shareNotice');
       this.shareNoticeText = doc.getElementById('shareNoticeText');
       this.shareNoticeClose = doc.getElementById('shareNoticeClose');
+      this.renderKeys = { settings: '', explanation: '', candidates: '' };
     }
 
     bind(handlers) {
@@ -43,6 +44,9 @@
     }
 
     renderSettings(settings) {
+      const key = `${settings.difficulty}|${settings.persona}|${settings.heatmap}|${settings.heatmapMode}|${settings.ghost}`;
+      if (key === this.renderKeys.settings) return;
+      this.renderKeys.settings = key;
       this.difficulty.value = settings.difficulty;
       this.persona.value = settings.persona;
       this.heatMode.value = settings.heatmapMode;
@@ -53,6 +57,11 @@
     }
 
     renderExplanation(insight) {
+      const key = insight?.move && insight?.explanation
+        ? `${insight.move.r},${insight.move.c}|${insight.explanation.reason}|${insight.explanation.attackLevel}|${insight.explanation.defenseLevel}|${insight.explanation.lookahead || ''}|${insight.explanation.personaLabel || ''}`
+        : 'empty';
+      if (key === this.renderKeys.explanation) return;
+      this.renderKeys.explanation = key;
       this.explain.innerHTML = '';
       if (!insight?.move || !insight?.explanation) {
         this.explain.textContent = 'AI落子后，这里会显示它为什么选择该位置。';
@@ -81,6 +90,11 @@
     }
 
     renderCandidates(candidates, player) {
+      const key = `${player || 0}|${(candidates || []).map(item =>
+        `${item.r},${item.c},${item.score},${item.attackLevel},${item.defenseLevel},${item.reply?.r ?? '-'},${item.reply?.c ?? '-'},${item.followUp?.r ?? '-'},${item.followUp?.c ?? '-'}`
+      ).join(';')}`;
+      if (key === this.renderKeys.candidates) return;
+      this.renderKeys.candidates = key;
       this.candidateCompare.innerHTML = '';
       this.candidateSide.textContent = player ? `${player === BLACK ? '黑' : '白'}方视角` : '';
 
