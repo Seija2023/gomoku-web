@@ -174,6 +174,7 @@
     select(id) {
       if (!this.nodes.has(id)) return false;
       this.currentId = id;
+      this.touch();
       return true;
     }
 
@@ -281,17 +282,46 @@
           children: [...raw.children],
         });
       }
-      if (!tree.nodes.has('root')) return null;
+      if (!tree.nodes.has('root') || tree.nodes.size > MAX_NODES) return null;
 
-      tree.sequence = Number.isInteger(payload.sequence) ? payload.sequence : payload.nodes.length;
       tree.currentId = tree.nodes.has(payload.currentId) ? payload.currentId : 'root';
 
       for (const node of tree.nodes.values()) {
+        if (node.id === 'root' && node.parentId !== null) return null;
         if (node.id !== 'root' && (!node.parentId || !tree.nodes.has(node.parentId))) return null;
         for (const childId of node.children) {
-          if (!tree.nodes.has(childId)) return null;
+          const child = tree.nodes.get(childId);
+          if (!child || child.parentId !== node.id) return null;
         }
       }
+
+      const visiting = new Set();
+      const visited = new Set();
+      const validateGraph = id => {
+        if (visiting.has(id)) return false;
+        if (visited.has(id)) return true;
+        const node = tree.nodes.get(id);
+        if (!node) return false;
+        visiting.add(id);
+        for (const childId of node.children) {
+          if (!validateGraph(childId)) return false;
+        }
+        visiting.delete(id);
+        visited.add(id);
+        return true;
+      };
+      if (!validateGraph('root') || visited.size !== tree.nodes.size) return null;
+
+      const numericIds = [...tree.nodes.keys()]
+        .map(id => /^n(\d+)$/.exec(id))
+        .filter(Boolean)
+        .map(match => Number(match[1]));
+      const safeSequence = numericIds.length ? Math.max(...numericIds) + 1 : 1;
+      tree.sequence = Math.max(
+        safeSequence,
+        Number.isInteger(payload.sequence) ? payload.sequence : safeSequence,
+      );
+
       if (!tree.position(tree.currentId)) return null;
       return tree;
     }
