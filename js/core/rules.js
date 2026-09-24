@@ -6,32 +6,40 @@
     return r >= 0 && r < size && c >= 0 && c < size;
   }
 
-  function countDirection(board, r, c, dr, dc, player) {
-    let count = 0;
+  function collectDirection(board, r, c, dr, dc, player) {
+    const cells = [];
     let nr = r + dr;
     let nc = c + dc;
-
     while (isInside(board, nr, nc) && board[nr][nc] === player) {
-      count += 1;
+      cells.push({ r: nr, c: nc });
       nr += dr;
       nc += dc;
     }
-    return count;
+    return cells;
+  }
+
+  function countDirection(board, r, c, dr, dc, player) {
+    return collectDirection(board, r, c, dr, dc, player).length;
+  }
+
+  function findWinningLine(board, r, c, player) {
+    if (!isInside(board, r, c) || board[r][c] !== player) return null;
+    for (const [dr, dc] of DIRECTIONS) {
+      const backward = collectDirection(board, r, c, -dr, -dc, player).reverse();
+      const forward = collectDirection(board, r, c, dr, dc, player);
+      const line = [...backward, { r, c }, ...forward];
+      if (line.length >= 5) return line;
+    }
+    return null;
   }
 
   function hasWon(board, r, c, player) {
-    if (!isInside(board, r, c) || board[r][c] !== player) return false;
-    return DIRECTIONS.some(([dr, dc]) => {
-      const count = 1
-        + countDirection(board, r, c, dr, dc, player)
-        + countDirection(board, r, c, -dr, -dc, player);
-      return count >= 5;
-    });
+    return Boolean(findWinningLine(board, r, c, player));
   }
 
   function isBoardFull(board) {
     return board.every(row => row.every(cell => cell !== 0));
   }
 
-  G.Rules = Object.freeze({ isInside, countDirection, hasWon, isBoardFull });
+  G.Rules = Object.freeze({ isInside, collectDirection, countDirection, findWinningLine, hasWon, isBoardFull });
 })(window.Gomoku = window.Gomoku || {});
