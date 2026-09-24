@@ -229,7 +229,7 @@ test('Boot Guard 会在模块顺序损坏时提供明确依赖诊断', async () 
 test('浏览器分享能力下沉到 platform 层，Controller 不直接操作 DOM', async () => {
   const controller = await readFile(new URL('../js/controllers/share-controller.js', import.meta.url), 'utf8');
   const adapter = await readFile(new URL('../js/platform/share-adapter.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(controller, /document\.|createElement|execCommand/);
+  assert.doesNotMatch(controller, /document\.|createElement|execCommand|navigator|location/);
   assert.match(controller, /this\.adapter\.share/);
   assert.match(controller, /this\.adapter\.copyText/);
   assert.match(adapter, /navigator\.share/);
