@@ -1,25 +1,17 @@
 (function (G) {
   class AudioManager {
-    constructor(storageKey = 'gomoku-sound') {
-      this.storageKey = storageKey;
+    constructor(enabled = true) {
       this.context = null;
-      this.enabled = this.loadSetting();
+      this.enabled = enabled !== false;
     }
 
-    loadSetting() {
-      try {
-        return localStorage.getItem(this.storageKey) !== 'off';
-      } catch {
-        return true;
+    setEnabled(enabled) {
+      this.enabled = Boolean(enabled);
+      if (this.enabled) {
+        this.ensureReady();
+        this.playTone(500, 0.055, 0.02);
       }
-    }
-
-    saveSetting() {
-      try {
-        localStorage.setItem(this.storageKey, this.enabled ? 'on' : 'off');
-      } catch {
-        // Browsers may disable storage in private/file contexts; gameplay is unaffected.
-      }
+      return this.enabled;
     }
 
     ensureReady() {
@@ -62,13 +54,7 @@
     }
 
     toggle() {
-      this.enabled = !this.enabled;
-      this.saveSetting();
-      if (this.enabled) {
-        this.ensureReady();
-        this.playTone(500, 0.055, 0.02);
-      }
-      return this.enabled;
+      return this.setEnabled(!this.enabled);
     }
   }
 
