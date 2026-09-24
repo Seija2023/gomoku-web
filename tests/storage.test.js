@@ -59,3 +59,23 @@ test('训练间隔复习进度可以持久化', () => {
   assert.equal(Storage.saveTrainingProgress(progress), true);
   assert.deepEqual(Storage.loadTrainingProgress(), progress);
 });
+
+
+test('自定义局面即使 continuation moves 为空也会保存', () => {
+  const board = Array.from({ length: 15 }, () => Array(15).fill(0));
+  board[7][7] = 1;
+  const snapshot = {
+    version: 1,
+    mode: 'pvp',
+    currentPlayer: 2,
+    moves: [],
+    gameOver: false,
+    winner: 0,
+    customPosition: true,
+    initialBoard: board,
+    initialPlayer: 2,
+  };
+
+  assert.equal(Storage.saveCurrent(snapshot), true);
+  assert.deepEqual(Storage.loadCurrent(), snapshot);
+});
