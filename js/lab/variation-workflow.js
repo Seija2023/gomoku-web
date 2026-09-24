@@ -28,6 +28,27 @@
       return true;
     }
 
+    startFromTraining() {
+      const position = this.trainingController.variationPosition();
+      if (!position || !this.trainingController.state.active) return false;
+
+      this.boardView.clearGhost();
+      if (!this.trainingController.suspend()) return false;
+      if (!this.variationController.start({
+        board: position.board,
+        currentPlayer: position.currentPlayer,
+      }, {
+        rootLabel: position.rootLabel,
+        source: 'training',
+        origin: 'training',
+      })) {
+        this.trainingController.resume();
+        return false;
+      }
+      this.refresh();
+      return true;
+    }
+
     startCurrent() {
       if (this.blocked(true)) return false;
       this.gameController.clearTimers();
@@ -54,16 +75,18 @@
       this.boardView.clearGhost();
 
       if (result.origin === 'review') this.reviewController.resume();
+      if (result.origin === 'training') this.trainingController.resume();
       this.refresh();
 
       if (
         result.origin !== 'review'
+        && result.origin !== 'training'
         && this.game.mode === G.Config.MODES.AI
         && this.game.currentPlayer === G.Config.WHITE
         && !this.game.gameOver
       ) {
         this.gameController.scheduleAiMove();
-      } else if (result.origin !== 'review' && this.game.gameOver) {
+      } else if (result.origin !== 'review' && result.origin !== 'training' && this.game.gameOver) {
         this.panel.showResult(this.game);
       }
       return true;
