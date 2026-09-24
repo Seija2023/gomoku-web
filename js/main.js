@@ -908,5 +908,9 @@
     shareReviewChallenge,
     getGame: () => game,
     getSettings: () => ({ ...settings }),
+    getPerformanceStats: () => ({
+      analysis: analysisService.stats(),
+      board: boardView.stats(),
+    }),
   });
 })(window.Gomoku = window.Gomoku || {});
