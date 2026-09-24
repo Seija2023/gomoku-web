@@ -26,6 +26,7 @@ test('ShareAdapter prefers Clipboard API when available', async () => {
   });
 
   const adapter = new Platform.ShareAdapter();
+  assert.equal(adapter.urlForHash('#next'), 'https://example.test/game#next');
   assert.equal(await adapter.copyText('hello'), true);
   assert.equal(copied, 'hello');
 });
@@ -64,6 +65,7 @@ test('ShareAdapter reports native share success and cancellation separately', as
 test('ShareController delegates platform behavior instead of touching DOM itself', async () => {
   const notices = [];
   const adapter = {
+    urlForHash: hash => `https://example.test/game${hash}`,
     share: async () => ({ handled: false, shared: false }),
     copyText: async value => value.endsWith('#share-payload'),
   };
