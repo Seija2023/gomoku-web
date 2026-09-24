@@ -7,11 +7,44 @@
         : null;
       this.gate = requestGate;
       this.latest = null;
+      this.traces = new Map();
       this.metrics = { chooseRequests: 0, compareRequests: 0, staleResults: 0, cancellations: 0 };
+    }
+
+    beginTrace(channel) {
+      this.traces.set(channel, []);
+    }
+
+    recordTrace(channel, progress) {
+      if (!progress?.depth) return;
+      const trace = this.traces.get(channel) || [];
+      const entry = {
+        depth: progress.depth,
+        nodes: progress.nodes || 0,
+        elapsedMs: progress.elapsedMs || 0,
+        score: progress.score ?? null,
+        cacheHits: progress.cacheHits || 0,
+        tacticalNodes: progress.tacticalNodes || 0,
+        bestMove: progress.bestMove ? { ...progress.bestMove } : null,
+      };
+      const existing = trace.findIndex(item => item.depth === entry.depth);
+      if (existing >= 0) trace[existing] = entry;
+      else trace.push(entry);
+      trace.sort((a, b) => a.depth - b.depth);
+      this.traces.set(channel, trace.slice(-12));
+    }
+
+    searchTrace(channel = null) {
+      const key = channel || this.latest?.channel;
+      return key ? (this.traces.get(key) || []).map(item => ({
+        ...item,
+        bestMove: item.bestMove ? { ...item.bestMove } : null,
+      })) : [];
     }
 
     async chooseMove(context, channel = 'ai') {
       const version = this.gate.next(channel);
+      this.beginTrace(channel);
       this.metrics.chooseRequests += 1;
 
       await Promise.resolve();
@@ -24,6 +57,7 @@
         ...(context.searchOptions || {}),
         onProgress: progress => {
           this.latest = { channel, active: true, mode: 'main-thread', ...progress };
+          this.recordTrace(channel, this.latest);
           context.onProgress?.(this.latest);
         },
       };
@@ -38,6 +72,7 @@
       );
       if (result?.search) {
         this.latest = { channel, active: false, mode: 'main-thread', ...result.search, bestMove: result.move };
+        this.recordTrace(channel, this.latest);
         context.onProgress?.(this.latest);
       }
 
@@ -48,6 +83,7 @@
 
     async compareMove(context, channel = 'counterfactual') {
       const version = this.gate.next(channel);
+      this.beginTrace(channel);
       this.metrics.compareRequests += 1;
 
       await Promise.resolve();
@@ -62,6 +98,7 @@
           ...(context.searchOptions || {}),
           onProgress: progress => {
             this.latest = { channel, active: true, mode: 'main-thread', ...progress };
+            this.recordTrace(channel, this.latest);
             context.onProgress?.(this.latest);
           },
         },
@@ -69,6 +106,7 @@
       const summary = result?.search?.recommendation || result?.recommendedLine?.search || null;
       if (summary) {
         this.latest = { channel, active: false, mode: 'main-thread', ...summary, bestMove: result.recommendedLine };
+        this.recordTrace(channel, this.latest);
         context.onProgress?.(this.latest);
       }
       const stale = !this.gate.isCurrent(channel, version);
@@ -123,10 +161,12 @@
         mode: 'main-thread',
         ...this.metrics,
         latestProgress: this.progress(),
+        searchTrace: this.searchTrace(),
         requests: {
           ai: this.gate.current('ai'),
           branch: this.gate.current('branch'),
           counterfactual: this.gate.current('counterfactual'),
+          variation: this.gate.current('variation'),
         },
       };
     }
