@@ -157,16 +157,21 @@
     recordTrace(channel, progress) {
       if (!progress?.depth) return;
       const trace = this.traces.get(channel) || [];
+      const existing = trace.findIndex(item => item.depth === progress.depth);
+      const previous = existing >= 0 ? trace[existing] : null;
       const entry = {
         depth: progress.depth,
-        nodes: progress.nodes || 0,
-        elapsedMs: progress.elapsedMs || 0,
-        score: progress.score ?? null,
-        cacheHits: progress.cacheHits || 0,
-        tacticalNodes: progress.tacticalNodes || 0,
-        bestMove: progress.bestMove ? { ...progress.bestMove } : null,
+        nodes: progress.nodes ?? previous?.nodes ?? 0,
+        elapsedMs: progress.elapsedMs ?? previous?.elapsedMs ?? 0,
+        score: progress.score ?? previous?.score ?? null,
+        cacheHits: progress.cacheHits ?? previous?.cacheHits ?? 0,
+        tacticalNodes: progress.tacticalNodes ?? previous?.tacticalNodes ?? 0,
+        cutoffs: progress.cutoffs ?? previous?.cutoffs ?? 0,
+        tableEntries: progress.tableEntries ?? previous?.tableEntries ?? 0,
+        bestMove: progress.bestMove
+          ? { ...progress.bestMove }
+          : previous?.bestMove ? { ...previous.bestMove } : null,
       };
-      const existing = trace.findIndex(item => item.depth === entry.depth);
       if (existing >= 0) trace[existing] = entry;
       else trace.push(entry);
       trace.sort((a, b) => a.depth - b.depth);
