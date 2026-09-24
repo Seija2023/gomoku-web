@@ -79,6 +79,7 @@ const requiredFiles = [
   'docs/ARCHITECTURE.md',
   'docs/CHANGELOG.md',
   'docs/DEVELOPMENT.md',
+  'docs/RELEASING.md',
   'docs/USAGE.md',
   '.github/workflows/ci.yml',
 ];
