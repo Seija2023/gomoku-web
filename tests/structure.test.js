@@ -7,10 +7,11 @@ const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'u
 const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.3.3 控制器架构模块', () => {
+test('入口文件加载 v2.4.0 棋局实验室与控制器架构模块', () => {
   for (const path of [
     'js/app/render-flags.js',
     'js/game/position.js',
+    'js/game/editable-position.js',
     'js/storage/migrations.js',
     'js/services/analysis-service.js',
     'js/services/request-gate.js',
@@ -21,11 +22,13 @@ test('入口文件加载 v2.3.3 控制器架构模块', () => {
     'js/training/scheduler.js',
     'js/share/codec.js',
     'js/ui/insights.js',
+    'js/ui/position-editor.js',
     'js/controllers/review-controller.js',
     'js/controllers/training-controller.js',
     'js/controllers/share-controller.js',
     'js/controllers/game-controller.js',
     'js/controllers/branch-controller.js',
+    'js/controllers/position-editor-controller.js',
     'js/main.js',
   ]) assert.match(index, new RegExp(path.replace(/[./]/g, '\\$&')));
 });
@@ -47,7 +50,9 @@ test('页面保留 v2.3 核心 PC 与手机控件', () => {
   for (const id of [
     'board','difficultySelect','personaSelect','ghostToggle','candidateCompare',
     'heatmapToggle','reviewTimeline','advantageChart','reviewShareBtn',
-    'reviewChallengeBtn','trainingStats','openingLibrary','branchBar','trainingCard'
+    'reviewChallengeBtn','trainingStats','openingLibrary','branchBar','trainingCard',
+    'positionEditorBtn','positionEditorCard','editorToolBlack','editorToolWhite',
+    'editorToolErase','editorNextPlayer','editorStartPvpBtn','editorStartAiBtn'
   ]) assert.match(index, new RegExp(`id="${id}"`));
 });
 
@@ -81,12 +86,13 @@ test('主控制器支持按区域刷新而不是只能全量 refresh', async () 
 test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => {
   const source = await readFile(new URL('../js/main.js', import.meta.url), 'utf8');
   const lines = source.split('\n').length;
-  assert.ok(lines < 650, `main.js should stay below 650 lines, got ${lines}`);
+  assert.ok(lines < 720, `main.js should stay below 720 lines after v2.4 integration, got ${lines}`);
   assert.match(source, /new G\.Controllers\.GameController/);
   assert.match(source, /new G\.Controllers\.ReviewController/);
   assert.match(source, /new G\.Controllers\.BranchController/);
   assert.match(source, /new G\.Controllers\.TrainingController/);
   assert.match(source, /new G\.Controllers\.ShareController/);
+  assert.match(source, /new G\.Controllers\.PositionEditorController/);
 });
 
 test('CI 包含短浏览器 Smoke Test', async () => {
