@@ -23,6 +23,8 @@ jobs:
         run: npm test
       - name: Build standalone page
         run: npm run build
+      - name: Run browser smoke test
+        run: npm run smoke
       - name: Upload standalone build
         uses: actions/upload-artifact@v4
         with:
