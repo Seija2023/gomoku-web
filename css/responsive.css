@@ -20,7 +20,7 @@
   .app { width: min(100% - 18px, 1180px); padding: 20px 0 32px; }
   .hero { align-items: start; flex-direction: column; gap: 18px; }
   .status-card { width: 100%; }
-  .board-wrap { padding: 29px; border-radius: 18px; }
+  .board-wrap { padding: 36px; border-radius: 18px; }
   .panel { display: block; }
   .panel-section + .panel-section {
     border-top: 1px solid rgba(55,39,21,.1);
@@ -35,7 +35,7 @@
 }
 
 @media (max-width: 390px) {
-  .board-wrap { padding: 27px; }
+  .board-wrap { padding: 34px; }
   .app { width: min(100% - 12px, 1180px); }
   .result-actions { grid-template-columns: 1fr; }
   .move-list { grid-template-columns: 1fr 1fr; }
