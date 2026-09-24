@@ -79,9 +79,12 @@
           <div>
             <p class="eyebrow">TRAINING</p>
             <strong id="trainingPrompt">找到关键下一手</strong>
+            <p id="trainingMeta" class="training-meta"></p>
             <p id="trainingFeedback" class="training-feedback"></p>
+            <p id="trainingDetail" class="training-detail"></p>
           </div>
           <div class="training-actions">
+            <button id="trainingVariationBtn" type="button" disabled>变化树分析</button>
             <button id="trainingNextBtn" type="button" disabled>下一题</button>
             <button id="trainingExitBtn" type="button">退出训练</button>
           </div>
@@ -309,11 +312,16 @@
         </div>
 
         <div class="panel-section">
-          <h2>训练中心</h2>
+          <h2>自适应训练</h2>
           <button id="trainingBtn" class="wide-button" type="button">
-            今日残局训练 <span class="count-badge" id="trainingCount">0</span>
+            今日自适应训练 <span class="count-badge" id="trainingCount">0</span>
+          </button>
+          <button id="mistakeTrainingBtn" class="wide-button lab-secondary" type="button">
+            错题强化 <span class="count-badge" id="mistakeTrainingCount">0</span>
           </button>
           <div id="trainingStats" class="mini-stats"></div>
+          <div id="trainingWeakness" class="training-weakness"></div>
+          <div id="mistakeBook" class="mistake-book"></div>
           <div id="profileContent" class="profile-content"></div>
         </div>
 
@@ -361,9 +369,12 @@
   <script src="js/services/request-gate.js" defer></script>
   <script src="js/services/ai-client.js" defer></script>
   <script src="js/services/worker-ai-client.js" defer></script>
+  <script src="js/training/taxonomy.js" defer></script>
+  <script src="js/training/mistake-miner.js" defer></script>
+  <script src="js/training/scheduler.js" defer></script>
+  <script src="js/training/adaptive-engine.js" defer></script>
   <script src="js/training/puzzles.js" defer></script>
   <script src="js/training/profile.js" defer></script>
-  <script src="js/training/scheduler.js" defer></script>
   <script src="js/services/derived-service.js" defer></script>
   <script src="js/share/codec.js" defer></script>
   <script src="js/audio/audio.js" defer></script>
