@@ -171,13 +171,14 @@
     difficulty = AI_DIFFICULTIES.NORMAL,
     player = WHITE,
     persona = AI_PERSONAS.BALANCED,
-    rng = Math.random
+    rng = Math.random,
+    rankedOverride = null
   ) {
     if (typeof persona === 'function') {
       rng = persona;
       persona = AI_PERSONAS.BALANCED;
     }
-    const ranked = rankMoves(board, moves, player, persona);
+    const ranked = rankedOverride || rankMoves(board, moves, player, persona);
     if (!ranked.length) return { move: null, candidates: [], explanation: null };
 
     const opponent = opponentOf(player);
