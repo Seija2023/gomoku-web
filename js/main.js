@@ -494,18 +494,6 @@
     }
   }
 
-  function startBranchFromReview() {
-    const data = reviewController.branchData();
-    if (!data) return;
-
-    reviewController.deactivateForBranch();
-    if (!branchController.start(data.prefix, data.index)) {
-      reviewController.resume();
-      return;
-    }
-    refresh();
-  }
-
   function startSharedChallenge(payload) {
     gameController.clearTimers();
     if (!branchController.startShared(payload)) return false;
@@ -754,7 +742,6 @@
     undo,
     startReview,
     exitReview,
-    startBranchFromReview,
     startTraining,
     shareReviewGame,
     shareReviewChallenge,
