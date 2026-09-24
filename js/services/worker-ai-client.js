@@ -15,6 +15,7 @@
       this.nextId = 1;
       this.mode = 'starting';
       this.latest = null;
+      this.traces = new Map();
       this.metrics = {
         chooseRequests: 0,
         compareRequests: 0,
@@ -149,6 +150,37 @@
       });
     }
 
+    beginTrace(channel) {
+      this.traces.set(channel, []);
+    }
+
+    recordTrace(channel, progress) {
+      if (!progress?.depth) return;
+      const trace = this.traces.get(channel) || [];
+      const entry = {
+        depth: progress.depth,
+        nodes: progress.nodes || 0,
+        elapsedMs: progress.elapsedMs || 0,
+        score: progress.score ?? null,
+        cacheHits: progress.cacheHits || 0,
+        tacticalNodes: progress.tacticalNodes || 0,
+        bestMove: progress.bestMove ? { ...progress.bestMove } : null,
+      };
+      const existing = trace.findIndex(item => item.depth === entry.depth);
+      if (existing >= 0) trace[existing] = entry;
+      else trace.push(entry);
+      trace.sort((a, b) => a.depth - b.depth);
+      this.traces.set(channel, trace.slice(-12));
+    }
+
+    searchTrace(channel = null) {
+      const key = channel || this.latest?.channel;
+      return key ? (this.traces.get(key) || []).map(item => ({
+        ...item,
+        bestMove: item.bestMove ? { ...item.bestMove } : null,
+      })) : [];
+    }
+
     handleMessage(message) {
       if (message.type === 'progress') {
         const item = this.pending.get(message.id);
@@ -160,6 +192,7 @@
           ...message.progress,
         };
         this.latest = progress;
+        this.recordTrace(item.channel, progress);
         item.context.onProgress?.({ ...progress });
         return;
       }
@@ -190,6 +223,7 @@
           ...summary,
           bestMove: message.result?.move || message.result?.recommendedLine || null,
         };
+        this.recordTrace(item.channel, this.latest);
         item.context.onProgress?.({ ...this.latest });
       } else if (this.latest?.channel === item.channel) {
         this.latest = { ...this.latest, active: false };
@@ -232,6 +266,7 @@
 
     async request(operation, context, channel) {
       const version = this.gate.next(channel);
+      this.beginTrace(channel);
       if (operation === 'choose') this.metrics.chooseRequests += 1;
       else this.metrics.compareRequests += 1;
 
@@ -334,10 +369,12 @@
         pending: this.pending.size,
         deviceFactor: this.deviceFactor(),
         latestProgress: this.progress(),
+        searchTrace: this.searchTrace(),
         requests: {
           ai: this.gate.current('ai'),
           branch: this.gate.current('branch'),
           counterfactual: this.gate.current('counterfactual'),
+          variation: this.gate.current('variation'),
         },
       };
     }
