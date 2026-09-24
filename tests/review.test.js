@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 globalThis.window = globalThis;
 await import('../js/config.js');
 await import('../js/core/rules.js');
+await import('../js/ai/evaluator.js');
 await import('../js/game/history.js');
 await import('../js/analysis/analyzer.js');
 
@@ -24,7 +25,7 @@ test('复盘棋盘只重建到指定手数', () => {
   assert.equal(board[8][8], 0);
 });
 
-test('分析器能识别最终五连节点', () => {
+test('分析器能识别最终五连并生成关键手索引', () => {
   const moves = [
     {r:7,c:3,player:Config.BLACK},{r:0,c:0,player:Config.WHITE},
     {r:7,c:4,player:Config.BLACK},{r:0,c:1,player:Config.WHITE},
@@ -36,4 +37,5 @@ test('分析器能识别最终五连节点', () => {
   assert.equal(analysis.winnerText, '黑棋获胜');
   assert.equal(analysis.direction, '横向');
   assert.equal(analysis.moments.at(-1).label, '完成五连');
+  assert.equal(analysis.keyIndices.includes(9), true);
 });
