@@ -183,7 +183,9 @@ try {
   await cdp.evaluate("document.getElementById('editorToolWhite').click(); document.querySelector('[data-row=\"7\"][data-col=\"8\"]').click()");
   await cdp.evaluate("document.getElementById('editorAnalyzeBtn').click()");
   await cdp.waitFor("document.querySelectorAll('#candidateCompare .candidate-card').length > 0");
-  const editorState = await cdp.evaluate("(() => ({ pieces: document.querySelectorAll('.piece').length, candidates: document.querySelectorAll('#candidateCompare .candidate-card').length, cardVisible: !document.getElementById('positionEditorCard').classList.contains('hidden'), initializations: Gomoku.App.getPerformanceStats().board.initializations }))()");
+  await cdp.evaluate("document.getElementById('editorCompareBtn').click(); document.querySelector('[data-row=\"6\"][data-col=\"7\"]').click()");
+  await cdp.waitFor("!document.getElementById('counterfactualCard').classList.contains('hidden')");
+  const editorState = await cdp.evaluate("(() => ({ pieces: document.querySelectorAll('.piece').length, candidates: document.querySelectorAll('#candidateCompare .candidate-card').length, cardVisible: !document.getElementById('positionEditorCard').classList.contains('hidden'), comparisonVisible: !document.getElementById('counterfactualCard').classList.contains('hidden'), userMove: document.getElementById('counterfactualUserMove').textContent, aiMove: document.getElementById('counterfactualAiMove').textContent, reasons: document.querySelectorAll('#counterfactualReasons p').length, userMarkers: document.querySelectorAll('.cell.compare-user').length, aiMarkers: document.querySelectorAll('.cell.compare-ai').length, initializations: Gomoku.App.getPerformanceStats().board.initializations }))()");
   await cdp.evaluate("document.getElementById('editorStartPvpBtn').click()");
   await cdp.waitFor("Gomoku.App.getGame().customPosition === true");
   const customGame = await cdp.evaluate("(() => ({ black: Gomoku.App.getGame().board[7][7], white: Gomoku.App.getGame().board[7][8], moves: Gomoku.App.getGame().moves.length, editorHidden: document.getElementById('positionEditorCard').classList.contains('hidden') }))()");
@@ -211,6 +213,8 @@ try {
     initialCells: initial.cells === 225,
     positionEditorPlaced: editorState.pieces === 2 && editorState.cardVisible,
     positionEditorAnalyzed: editorState.candidates > 0,
+    counterfactualRendered: editorState.comparisonVisible && editorState.userMove && editorState.aiMove && editorState.reasons > 0,
+    counterfactualMarkedBoard: editorState.userMarkers === 1 && editorState.aiMarkers === 1,
     customGameStarted: customGame.black === 1 && customGame.white === 2 && customGame.moves === 0 && customGame.editorHidden,
     editorReusedBoardDom: editorState.initializations === 1,
     boardInitializedOnce: initial.initializations === 1 && replayAfter.boardInitializations === 1,
