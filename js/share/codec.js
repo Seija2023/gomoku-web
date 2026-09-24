@@ -43,6 +43,11 @@
       const index = Number.isInteger(parsed.i) ? parsed.i : moves.length;
       if (index < 0 || index > moves.length) return null;
       if (parsed.k === 'challenge' && validation.terminalAt >= 0 && index > validation.terminalAt) return null;
+
+      const actualWinner = validation.terminalAt >= 0 ? moves[validation.terminalAt].player : 0;
+      const encodedWinner = parsed.w || 0;
+      if (encodedWinner !== actualWinner) return null;
+
       return {
         kind: parsed.k === 'challenge' ? 'challenge' : 'game',
         moves,
