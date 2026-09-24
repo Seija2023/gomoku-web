@@ -13,7 +13,9 @@
   const analysisService = new G.Services.AnalysisService();
   const derivedService = new G.Services.DerivedService();
   const requestGate = new G.Services.RequestGate();
-  const aiClient = new G.Services.MainThreadAIClient(analysisService, requestGate);
+  const aiClient = G.Services.createAIClient
+    ? G.Services.createAIClient(analysisService, requestGate)
+    : new G.Services.MainThreadAIClient(analysisService, requestGate);
   const shareController = new G.Controllers.ShareController(insights);
 
   let availablePuzzles = [];
@@ -245,6 +247,7 @@
         review.active || branch.active || training.active || editor.active,
         state.statusOverride,
       );
+      insights.renderSearchStatus(aiClient.progress?.() || null);
     }
 
     if (hasRenderFlag(mask, RenderFlags.SETTINGS)) {
