@@ -250,6 +250,7 @@ try {
   await cdp.evaluate("document.querySelector('[data-workspace-target=\"analysis\"]').click()");
   await cdp.waitFor("document.body.dataset.workspace === 'analysis' && document.querySelector('[data-workspaces=\"analysis\"]').classList.contains('workspace-visible')");
   await cdp.waitFor("document.querySelectorAll('.candidate-ghost-btn').length > 0");
+  const analysisLayout = await cdp.evaluate("(() => { const cards = [...document.querySelectorAll('#candidateCompare .candidate-card')]; const inspector = document.getElementById('searchInspector'); const panel = document.querySelector('.workspace-panel'); return { cardWidth: cards[0]?.getBoundingClientRect().width || 0, cardCount: cards.length, inspectorOpen: inspector.open, panelNoOverflow: panel.scrollWidth <= panel.clientWidth + 2 }; })()");
   await cdp.evaluate("document.querySelector('.candidate-ghost-btn').click()");
   const ghost2 = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { pinned: perf.board.ghostPinned, markers: document.querySelectorAll('.ghost-layer.pinned .ghost-piece').length, buttonActive: document.querySelector('.candidate-ghost-btn.active') !== null }; })()");
 
@@ -380,6 +381,7 @@ try {
     workspaceAnalysisFocused: workspaceAnalysis.visibleAnalysis && !workspaceAnalysis.visibleGame,
     workspaceRestoresAfterSpecial: workspacePersistAfterSpecial.workspace === 'lab' && workspacePersistAfterSpecial.selected === 'lab',
     workspacePersistsReload: workspaceReload.workspace === 'training' && workspaceReload.selected === 'training' && workspaceReload.activeTab === 'training',
+    analysisReadableCards: analysisLayout.cardCount > 0 && analysisLayout.cardWidth >= 230 && !analysisLayout.inspectorOpen && analysisLayout.panelNoOverflow,
     workerSearchTelemetry: aiRuntime.mode === 'worker' && aiRuntime.progress?.nodes > 0 && aiRuntime.progress?.depth >= 1 && aiRuntime.searchStatus.includes('Worker AI'),
     ghostLine2Pinned: ghost2.pinned && ghost2.markers >= 2 && ghost2.buttonActive,
     variationOpened: variationStart.cardVisible && variationStart.nodes === 1 && variationStart.ghostPinned === false && variationStart.workspace === 'lab' && variationStart.disabledTabs === 3,
@@ -412,7 +414,7 @@ try {
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
-  console.log(JSON.stringify({ checks, initial, workspaceInitial, workspaceAnalysis, workspacePersistAfterSpecial, workspaceReload, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, adaptiveDashboard, adaptivePuzzle, adaptiveAnswer, trainingVariation, mobileTraining, adaptiveSession, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
+  console.log(JSON.stringify({ checks, initial, workspaceInitial, workspaceAnalysis, workspacePersistAfterSpecial, workspaceReload, analysisLayout, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, adaptiveDashboard, adaptivePuzzle, adaptiveAnswer, trainingVariation, mobileTraining, adaptiveSession, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
 
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {
