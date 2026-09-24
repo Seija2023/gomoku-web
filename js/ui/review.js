@@ -20,6 +20,26 @@
       this.keyMarkers = doc.getElementById('reviewKeyMarkers');
       this.moveList = doc.getElementById('moveList');
       this.analysis = doc.getElementById('analysisContent');
+
+      this.onSeek = null;
+      this.moveButtons = new Map();
+      this.activeMoveIndex = null;
+      this.lastMoves = null;
+      this.lastAnalysis = null;
+      this.lastKeyOnly = null;
+      this.metrics = { renders: 0, listBuilds: 0, markerBuilds: 0, analysisBuilds: 0 };
+
+      this.moveList.addEventListener('click', event => {
+        const button = event.target.closest('[data-move-index]');
+        if (!button || !this.moveList.contains(button) || !this.onSeek) return;
+        this.onSeek(Number(button.dataset.moveIndex) + 1);
+      });
+
+      this.keyMarkers.addEventListener('click', event => {
+        const button = event.target.closest('[data-review-index]');
+        if (!button || !this.keyMarkers.contains(button) || !this.onSeek) return;
+        this.onSeek(Number(button.dataset.reviewIndex));
+      });
     }
 
     bind(handlers) {
@@ -39,36 +59,32 @@
     show() { this.card.classList.remove('hidden'); }
     hide() { this.card.classList.add('hidden'); }
 
-    render(moves, index, playing, analysis, onSeek, keyOnly = false) {
-      this.position.textContent = `第 ${index} / ${moves.length} 手`;
-      this.playBtn.textContent = playing ? '暂停' : '自动播放';
-      this.keyOnlyBtn.textContent = keyOnly ? '显示全部手' : '只看关键手';
-      this.startBtn.disabled = index === 0;
-      this.prevBtn.disabled = index === 0;
-      this.nextBtn.disabled = index >= moves.length;
-      this.endBtn.disabled = index >= moves.length;
-      this.branchBtn.disabled = index >= moves.length;
-      this.challengeBtn.disabled = index >= moves.length;
-      this.timeline.min = '0';
-      this.timeline.max = String(moves.length);
-      this.timeline.value = String(index);
-
+    rebuildMoveList(moves, analysis, keyOnly) {
       const keyMap = new Map(analysis.moments.map(item => [item.index, item]));
-      this.moveList.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      this.moveButtons.clear();
 
       moves.forEach((move, i) => {
         const moment = keyMap.get(i);
         if (keyOnly && !moment) return;
+
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `move-item${i + 1 === index ? ' active' : ''}${moment ? ' key' : ''}`;
+        btn.className = `move-item${moment ? ' key' : ''}`;
+        btn.dataset.moveIndex = String(i);
         btn.textContent = `${moment ? '★ ' : ''}${moveLabel(move, i)}`;
         if (moment) btn.title = moment.label;
-        btn.addEventListener('click', () => onSeek(i + 1));
-        this.moveList.appendChild(btn);
+        this.moveButtons.set(i + 1, btn);
+        fragment.appendChild(btn);
       });
 
-      this.keyMarkers.innerHTML = '';
+      this.moveList.replaceChildren(fragment);
+      this.activeMoveIndex = null;
+      this.metrics.listBuilds += 1;
+    }
+
+    rebuildMarkers(moves, analysis) {
+      const fragment = document.createDocumentFragment();
       analysis.moments.forEach(moment => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -76,14 +92,19 @@
         btn.style.left = `${moves.length ? ((moment.index + 1) / moves.length) * 100 : 0}%`;
         btn.title = `第${moment.index + 1}手：${moment.label}`;
         btn.setAttribute('aria-label', btn.title);
-        btn.addEventListener('click', () => onSeek(moment.index + 1));
-        this.keyMarkers.appendChild(btn);
+        btn.dataset.reviewIndex = String(moment.index + 1);
+        fragment.appendChild(btn);
       });
+      this.keyMarkers.replaceChildren(fragment);
+      this.metrics.markerBuilds += 1;
+    }
 
-      this.analysis.innerHTML = '';
+    rebuildAnalysis(analysis) {
+      const fragment = document.createDocumentFragment();
+
       const summary = document.createElement('p');
       summary.innerHTML = `<strong>${analysis.winnerText}</strong> · 共 ${analysis.totalMoves} 手${analysis.winner ? ` · ${analysis.direction}` : ''}`;
-      this.analysis.appendChild(summary);
+      fragment.appendChild(summary);
 
       const list = document.createElement('ul');
       const displayed = analysis.moments.slice(-10);
@@ -99,12 +120,62 @@
         li.textContent = '未检测到明显的关键棋形。';
         list.appendChild(li);
       }
-      this.analysis.appendChild(list);
+      fragment.appendChild(list);
 
       const note = document.createElement('p');
       note.className = 'analysis-note';
       note.textContent = '关键手、失误与优势曲线来自本地棋形规则和启发式评分，不等同于专业求解器的唯一最佳手。';
-      this.analysis.appendChild(note);
+      fragment.appendChild(note);
+
+      this.analysis.replaceChildren(fragment);
+      this.metrics.analysisBuilds += 1;
+    }
+
+    updateActiveMove(index) {
+      if (this.activeMoveIndex === index) return;
+      this.moveButtons.get(this.activeMoveIndex)?.classList.remove('active');
+      this.moveButtons.get(index)?.classList.add('active');
+      this.activeMoveIndex = index;
+    }
+
+    render(moves, index, playing, analysis, onSeek, keyOnly = false) {
+      this.metrics.renders += 1;
+      this.onSeek = onSeek;
+      this.position.textContent = `第 ${index} / ${moves.length} 手`;
+      this.playBtn.textContent = playing ? '暂停' : '自动播放';
+      this.keyOnlyBtn.textContent = keyOnly ? '显示全部手' : '只看关键手';
+      this.startBtn.disabled = index === 0;
+      this.prevBtn.disabled = index === 0;
+      this.nextBtn.disabled = index >= moves.length;
+      this.endBtn.disabled = index >= moves.length;
+      this.branchBtn.disabled = index >= moves.length;
+      this.challengeBtn.disabled = index >= moves.length;
+      this.timeline.min = '0';
+      this.timeline.max = String(moves.length);
+      this.timeline.value = String(index);
+
+      const structureChanged =
+        moves !== this.lastMoves
+        || analysis !== this.lastAnalysis
+        || keyOnly !== this.lastKeyOnly;
+
+      if (structureChanged) {
+        this.rebuildMoveList(moves, analysis, keyOnly);
+        this.rebuildMarkers(moves, analysis);
+        this.lastMoves = moves;
+        this.lastKeyOnly = keyOnly;
+      }
+
+      if (analysis !== this.lastAnalysis) {
+        this.rebuildAnalysis(analysis);
+        this.lastAnalysis = analysis;
+      }
+
+      this.updateActiveMove(index);
+    }
+
+    stats() {
+      return { ...this.metrics };
     }
   }
 

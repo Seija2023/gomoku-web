@@ -7,6 +7,7 @@
 - v2.2.0：本地智能分析、分支和训练
 - v2.3.0：跨设备智能对弈实验室
 - v2.3.1：性能与扩展基础优化
+- v2.3.2：调度与扩展优化
 
 ## v2.3.1 新基础层
 
@@ -78,3 +79,30 @@ v2.3.1 暂不强制引入 Worker。原因是当前更高收益的重复计算和
 `npm test` 使用 Node 内置测试框架。
 
 `npm run build` 根据 `index.html` 的 CSS/JS 顺序生成单文件 `dist/gomoku.html`。
+
+## v2.3.2 调度层
+
+### Dirty Refresh
+
+`js/app/render-flags.js` 将 UI 刷新拆成 BOARD / STATUS / ANALYSIS / REVIEW / OVERLAYS / SETTINGS 六类。
+
+高频操作不再默认触发整个界面刷新。例如音效开关只刷新状态区，自动复盘只刷新棋盘、分析和复盘区域。
+
+### DerivedService
+
+`js/services/derived-service.js` 缓存历史棋局派生结果：
+
+- 训练题
+- 玩家画像
+- 个人开局库
+- 间隔复习统计
+
+训练答题只使训练统计失效，不会重复计算和重绘历史列表、画像与开局库。
+
+### ReviewView
+
+复盘棋谱、关键点标记和分析说明在进入一局复盘时建立一次。自动播放每一步只更新当前手、按钮状态和时间轴，不再重建整套静态 DOM。
+
+### RequestGate
+
+`js/services/request-gate.js` 为 AI 请求提供版本号。切换模式、悔棋或离开分支后，旧请求即使稍后返回也不能再写入当前状态。当前同步 AI 已接入该机制，未来迁移 Web Worker 时可直接沿用。
