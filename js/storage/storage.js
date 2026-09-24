@@ -5,6 +5,7 @@
   const HISTORY_KEY = 'gomoku-history-v2';
   const SETTINGS_KEY = 'gomoku-settings-v23';
   const TRAINING_PROGRESS_KEY = 'gomoku-training-v23';
+  const VARIATION_TREE_KEY = 'gomoku-variation-tree-v26';
   const MAX_HISTORY = 20;
 
   function read(key, fallback) {
@@ -90,11 +91,30 @@
     return write(TRAINING_PROGRESS_KEY, progress || {});
   }
 
+  function saveVariationTree(tree) {
+    if (!tree) return clearVariationTree();
+    return write(VARIATION_TREE_KEY, tree);
+  }
+
+  function loadVariationTree() {
+    return read(VARIATION_TREE_KEY, null);
+  }
+
+  function clearVariationTree() {
+    try {
+      localStorage.removeItem(VARIATION_TREE_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   G.Storage = Object.freeze({
     CURRENT_KEY,
     HISTORY_KEY,
     SETTINGS_KEY,
     TRAINING_PROGRESS_KEY,
+    VARIATION_TREE_KEY,
     SCHEMA_VERSION: G.StorageMigrations?.CURRENT_SCHEMA || 0,
     saveCurrent,
     loadCurrent,
@@ -106,5 +126,8 @@
     saveSettings,
     loadTrainingProgress,
     saveTrainingProgress,
+    saveVariationTree,
+    loadVariationTree,
+    clearVariationTree,
   });
 })(window.Gomoku = window.Gomoku || {});
