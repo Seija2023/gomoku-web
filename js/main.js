@@ -20,6 +20,7 @@
   const shareController = new G.Controllers.ShareController(insights);
 
   let availablePuzzles = [];
+  let availableMistakes = [];
 
   const reviewController = new G.Controllers.ReviewController({
     analysisClient: aiClient,
@@ -102,6 +103,21 @@
     flags: RenderFlags,
   });
 
+  const trainingWorkflow = new G.Training.Workflow({
+    game,
+    gameController,
+    reviewController,
+    branchController,
+    trainingController,
+    positionEditorController,
+    variationController,
+    variationWorkflow,
+    panel,
+    refresh,
+    getPuzzles: () => availablePuzzles,
+    getMistakes: () => availableMistakes,
+  });
+
   const advantageChart = new G.UI.AdvantageChart(
     document.getElementById('advantageChart'),
     document.getElementById('advantageLabel'),
@@ -120,8 +136,14 @@
   function refreshTrainingDerived(records = G.Storage.listHistory()) {
     const derived = derivedService.training(records, trainingController.progress);
     availablePuzzles = derived.puzzles;
-    insights.renderTrainingCount(derived.trainingStats.due, derived.trainingStats.total);
+    availableMistakes = derived.mistakes || [];
+    insights.renderTrainingCount(
+      derived.trainingStats.due,
+      derived.trainingStats.total,
+      derived.adaptive?.trainableMistakes || 0,
+    );
     insights.renderTrainingStats(derived.trainingStats);
+    insights.renderAdaptiveTraining(derived.adaptive, derived.puzzles);
     return derived;
   }
 
@@ -340,12 +362,7 @@
       }
 
       if (training.active) {
-        insights.showTraining(
-          training.puzzles[training.index],
-          training.index,
-          training.puzzles.length,
-          training.feedback,
-        );
+        insights.showTraining(training);
       } else {
         insights.hideTraining();
       }
@@ -518,36 +535,6 @@
     refresh();
   }
 
-  function startTraining() {
-    if (
-      reviewController.state.active
-      || branchController.state.active
-      || trainingController.state.active
-      || positionEditorController.state.active
-      || variationController.state.active
-      || !availablePuzzles.length
-    ) return;
-
-    gameController.clearTimers();
-    panel.hideResult();
-    if (trainingController.start(availablePuzzles)) refresh();
-  }
-
-  function nextTraining() {
-    trainingController.next();
-  }
-
-  function exitTraining() {
-    if (!trainingController.exit()) return;
-    refresh();
-
-    if (game.mode === MODES.AI && game.currentPlayer === WHITE && !game.gameOver) {
-      gameController.scheduleAiMove();
-    } else if (game.gameOver) {
-      panel.showResult(game);
-    }
-  }
-
   function startPositionEditor() {
     if (
       reviewController.state.active
@@ -685,10 +672,13 @@
     changeHeatmapMode,
     toggleGhost,
     toggleCandidateGhost: candidate => variationWorkflow.toggleCandidateGhost(candidate),
-    startTraining,
+    startTraining: () => trainingWorkflow.startAdaptive(),
+    startMistakeTraining: () => trainingWorkflow.startMistakes(),
+    startMistake: id => trainingWorkflow.startOne(id),
+    openTrainingVariation: () => trainingWorkflow.openVariation(),
     exitBranch,
-    nextTraining,
-    exitTraining,
+    nextTraining: () => trainingWorkflow.next(),
+    exitTraining: () => trainingWorkflow.exit(),
   });
   positionEditorView.bind({
     start: startPositionEditor,
@@ -754,7 +744,10 @@
     undo,
     startReview,
     exitReview,
-    startTraining,
+    startTraining: () => trainingWorkflow.startAdaptive(),
+    startMistakeTraining: () => trainingWorkflow.startMistakes(),
+    startMistake: id => trainingWorkflow.startOne(id),
+    openTrainingVariation: () => trainingWorkflow.openVariation(),
     shareReviewGame,
     shareReviewChallenge,
     startPositionEditor,

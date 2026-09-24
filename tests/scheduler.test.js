@@ -34,6 +34,14 @@ test('DerivedService 复用历史派生数据并单独刷新训练统计', async
   let profileCalls = 0;
   let openingCalls = 0;
   let trainingCalls = 0;
+  let mistakeCalls = 0;
+  let adaptiveCalls = 0;
+
+  G.MistakeMiner = { mine: () => { mistakeCalls += 1; return []; } };
+  G.AdaptiveTraining = { summary: () => {
+    adaptiveCalls += 1;
+    return { categories: [], recentMistakes: [], trainableMistakes: 0, totalMistakes: 0, totalAttempts: 0, accuracy: 0 };
+  } };
 
   G.Puzzles = { generate: records => { puzzleCalls += 1; return records.map(r => ({ id: r.id })); } };
   G.Profile = { compute: () => { profileCalls += 1; return { games: 1 }; } };
@@ -54,6 +62,8 @@ test('DerivedService 复用历史派生数据并单独刷新训练统计', async
   assert.equal(profileCalls, 1);
   assert.equal(openingCalls, 1);
   assert.equal(trainingCalls, 1);
+  assert.equal(mistakeCalls, 1);
+  assert.equal(adaptiveCalls, 1);
 
   service.invalidateTraining();
   service.training(records, { p1: { dueAt: 1 } });
@@ -61,10 +71,13 @@ test('DerivedService 复用历史派生数据并单独刷新训练统计', async
   assert.equal(profileCalls, 1);
   assert.equal(openingCalls, 1);
   assert.equal(trainingCalls, 2);
+  assert.equal(mistakeCalls, 1);
+  assert.equal(adaptiveCalls, 2);
 
   service.invalidateHistory();
   service.training([{ ...records[0], id: 'b' }], {});
   assert.equal(puzzleCalls, 2);
   assert.equal(profileCalls, 2);
   assert.equal(openingCalls, 2);
+  assert.equal(mistakeCalls, 2);
 });

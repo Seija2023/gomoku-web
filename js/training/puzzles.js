@@ -10,11 +10,62 @@
     return '找到这一局面的关键进攻点';
   }
 
-  function generate(records, maxCount = MAX_TRAINING_PUZZLES) {
+  function moveKey(move) {
+    return move ? `${move.r},${move.c}` : '';
+  }
+
+  function puzzleFromMistake(mistake) {
+    const alternatives = (mistake.alternatives || [])
+      .map(item => ({ r: item.r, c: item.c, score: item.score ?? null }));
+    if (!alternatives.some(item => moveKey(item) === moveKey(mistake.expected))) {
+      alternatives.unshift({ ...mistake.expected, score: null });
+    }
+
+    return {
+      id: mistake.id,
+      sourceId: mistake.sourceId,
+      sourceFinishedAt: mistake.sourceFinishedAt,
+      sourceKind: 'mistake',
+      mode: mistake.mode,
+      moveIndex: mistake.moveIndex,
+      player: mistake.player,
+      expected: { ...mistake.expected },
+      alternatives,
+      actual: { ...mistake.actual },
+      prefixMoves: G.Position.cloneMoves(mistake.prefixMoves),
+      prompt: mistake.prompt,
+      label: mistake.label,
+      type: 'adaptive',
+      category: mistake.type,
+      severity: mistake.severity,
+      confidence: mistake.confidence,
+      scoreLoss: mistake.scoreLoss,
+      explanation: mistake.explanation,
+    };
+  }
+
+  function legacyCategory(moment) {
+    if (moment.type === 'mistake') return 'FORCED_DEFENSE_MISS';
+    if (moment.type === 'defense') return 'DEFENSE_NEGLECT';
+    if (moment.type === 'win' || moment.type === 'attack') return 'TACTICAL_OVERSIGHT';
+    return 'SHAPE_LOSS';
+  }
+
+  function generate(records, maxCount = MAX_TRAINING_PUZZLES, suppliedMistakes = null) {
     const puzzles = [];
     const seen = new Set();
+    const mistakes = suppliedMistakes || G.MistakeMiner?.mine(records) || [];
 
-    for (const record of records) {
+    for (const mistake of mistakes) {
+      if (!mistake.trainable) continue;
+      const puzzle = puzzleFromMistake(mistake);
+      if (seen.has(puzzle.id)) continue;
+      seen.add(puzzle.id);
+      puzzles.push(puzzle);
+      if (puzzles.length >= maxCount) return puzzles;
+    }
+
+    for (const record of records || []) {
       const analysis = G.Analyzer.analyze(record);
       for (const moment of analysis.moments) {
         if (moment.index < 1 || moment.type === 'normal') continue;
@@ -26,21 +77,30 @@
         }
         if (!expected) continue;
 
-        const key = `${record.id || 'game'}:${moment.index}:${expected.r},${expected.c}`;
+        const key = `${record.id || 'game'}:legacy:${moment.index}:${expected.r},${expected.c}`;
         if (seen.has(key)) continue;
         seen.add(key);
 
         puzzles.push({
           id: key,
           sourceId: record.id || null,
+          sourceFinishedAt: record.finishedAt || null,
+          sourceKind: 'tactical',
           mode: record.mode,
           moveIndex: moment.index,
           player: record.moves[moment.index].player,
           expected: { r: expected.r, c: expected.c },
+          alternatives: [{ r: expected.r, c: expected.c }],
+          actual: null,
           prefixMoves: record.moves.slice(0, moment.index).map(move => ({ ...move })),
           prompt: promptFor(moment),
           label: moment.label,
           type: moment.type,
+          category: legacyCategory(moment),
+          severity: moment.severity || 2,
+          confidence: moment.type === 'mistake' || moment.type === 'win' ? 100 : 82,
+          scoreLoss: 0,
+          explanation: `来自历史棋局的${moment.label}局面。`,
         });
 
         if (puzzles.length >= maxCount) return puzzles;
@@ -51,12 +111,44 @@
   }
 
   function check(puzzle, r, c) {
-    const correct = puzzle && puzzle.expected.r === r && puzzle.expected.c === c;
+    if (!puzzle) return { correct: false, grade: 'wrong', message: '训练题不可用。' };
+    const selected = { r, c };
+    const expectedKey = moveKey(puzzle.expected);
+    const selectedKey = moveKey(selected);
+
+    if (selectedKey === expectedKey) {
+      return {
+        correct: true,
+        grade: 'best',
+        selected,
+        category: puzzle.category,
+        message: `最佳：${G.History.coordinate(puzzle.expected)} 是当前首选。`,
+        explanation: puzzle.explanation || '',
+      };
+    }
+
+    const alternative = (puzzle.alternatives || []).find(item => moveKey(item) === selectedKey);
+    if (alternative) {
+      return {
+        correct: true,
+        grade: 'good',
+        selected,
+        category: puzzle.category,
+        message: `可接受：${G.History.coordinate(selected)} 也是合理候选，但首选仍是 ${G.History.coordinate(puzzle.expected)}。`,
+        explanation: puzzle.explanation || '',
+      };
+    }
+
+    const repeatedOriginal = puzzle.actual && selectedKey === moveKey(puzzle.actual);
     return {
-      correct,
-      message: correct
-        ? `正确：${G.History.coordinate(puzzle.expected)} 是这个局面的关键点。`
-        : `这一步不是目标关键点。参考答案：${G.History.coordinate(puzzle.expected)}。`,
+      correct: false,
+      grade: 'wrong',
+      selected,
+      category: puzzle.category,
+      message: repeatedOriginal
+        ? `这正是原对局中的实战选择。更好的首选是 ${G.History.coordinate(puzzle.expected)}。`
+        : `这一步没有进入当前可接受候选。首选：${G.History.coordinate(puzzle.expected)}。`,
+      explanation: puzzle.explanation || '',
     };
   }
 

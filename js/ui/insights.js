@@ -19,14 +19,21 @@
       this.profile = doc.getElementById('profileContent');
       this.trainingBtn = doc.getElementById('trainingBtn');
       this.trainingCount = doc.getElementById('trainingCount');
+      this.mistakeTrainingBtn = doc.getElementById('mistakeTrainingBtn');
+      this.mistakeTrainingCount = doc.getElementById('mistakeTrainingCount');
       this.trainingStats = doc.getElementById('trainingStats');
+      this.trainingWeakness = doc.getElementById('trainingWeakness');
+      this.mistakeBook = doc.getElementById('mistakeBook');
       this.openingLibrary = doc.getElementById('openingLibrary');
       this.branchBar = doc.getElementById('branchBar');
       this.branchText = doc.getElementById('branchText');
       this.branchExit = doc.getElementById('branchExitBtn');
       this.trainingCard = doc.getElementById('trainingCard');
       this.trainingPrompt = doc.getElementById('trainingPrompt');
+      this.trainingMeta = doc.getElementById('trainingMeta');
       this.trainingFeedback = doc.getElementById('trainingFeedback');
+      this.trainingDetail = doc.getElementById('trainingDetail');
+      this.trainingVariation = doc.getElementById('trainingVariationBtn');
       this.trainingNext = doc.getElementById('trainingNextBtn');
       this.trainingExit = doc.getElementById('trainingExitBtn');
       this.shareNotice = doc.getElementById('shareNotice');
@@ -34,6 +41,7 @@
       this.shareNoticeClose = doc.getElementById('shareNoticeClose');
       this.renderKeys = { settings: '', explanation: '', candidates: '', search: '', inspector: '' };
       this.candidateMap = new Map();
+      this.mistakeMap = new Map();
     }
 
     bind(handlers) {
@@ -49,7 +57,15 @@
         if (candidate) handlers.toggleCandidateGhost(candidate);
       });
       this.trainingBtn.addEventListener('click', handlers.startTraining);
+      this.mistakeTrainingBtn.addEventListener('click', handlers.startMistakeTraining);
+      this.mistakeBook.addEventListener('click', event => {
+        const button = event.target.closest('[data-mistake-puzzle]');
+        if (!button) return;
+        const puzzle = this.mistakeMap.get(button.dataset.mistakePuzzle);
+        if (puzzle) handlers.startMistake(puzzle.id);
+      });
       this.branchExit.addEventListener('click', handlers.exitBranch);
+      this.trainingVariation.addEventListener('click', handlers.openTrainingVariation);
       this.trainingNext.addEventListener('click', handlers.nextTraining);
       this.trainingExit.addEventListener('click', handlers.exitTraining);
       this.shareNoticeClose.addEventListener('click', () => this.shareNotice.classList.add('hidden'));
@@ -238,7 +254,10 @@
         ['中心落子率', `${profile.centerRate}%`],
         ['进攻关键手', profile.attackMoments],
         ['关键防守', profile.defenseMoments],
-        ['明显失误', profile.mistakes],
+        ['自动识别错误', profile.mistakes],
+        ['高优先级错误', profile.severeMistakes || 0],
+        ['平均评分损失', profile.avgScoreLoss ? profile.avgScoreLoss.toLocaleString() : '-'],
+        ['首要弱点', profile.topWeakness?.label || '暂无'],
         ['棋风', profile.style],
       ];
 
@@ -254,9 +273,11 @@
       });
     }
 
-    renderTrainingCount(count, total = count) {
-      this.trainingCount.textContent = String(count);
+    renderTrainingCount(count, total = count, mistakes = 0) {
+      this.trainingCount.textContent = String(Math.min(count || total, G.Config.TRAINING_SESSION_SIZE || count || total));
       this.trainingBtn.disabled = total === 0;
+      this.mistakeTrainingCount.textContent = String(mistakes);
+      this.mistakeTrainingBtn.disabled = mistakes === 0;
     }
 
     renderTrainingStats(stats) {
@@ -265,12 +286,79 @@
         ['今日复习', stats.due],
         ['待加强', stats.weak],
         ['已掌握', stats.mastered],
+        ['训练正确率', `${stats.accuracy || 0}%`],
       ];
       items.forEach(([label, value]) => {
         const item = document.createElement('div');
         item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
         this.trainingStats.appendChild(item);
       });
+    }
+
+    renderAdaptiveTraining(adaptive, puzzles = []) {
+      const data = adaptive || { categories: [], recentMistakes: [], trainableMistakes: 0 };
+      this.mistakeMap.clear();
+      this.trainingWeakness.replaceChildren();
+      this.mistakeBook.replaceChildren();
+
+      const heading = document.createElement('div');
+      heading.className = 'training-weakness-head';
+      heading.innerHTML = `<strong>近期弱点</strong><span>${data.totalMistakes || 0} 个错误样本</span>`;
+      this.trainingWeakness.appendChild(heading);
+
+      const weakCategories = (data.categories || [])
+        .filter(item => item.weakness > 0 || item.mistakes > 0)
+        .slice(0, 4);
+      if (!weakCategories.length) {
+        const empty = document.createElement('p');
+        empty.className = 'helper-text';
+        empty.textContent = '完成几局人机对战后，会根据你的实战自动识别训练重点。';
+        this.trainingWeakness.appendChild(empty);
+      } else {
+        for (const item of weakCategories) {
+          const row = document.createElement('div');
+          row.className = 'weakness-row';
+          const pressure = Math.max(6, Math.min(100, item.weakness * 4));
+          row.innerHTML = `
+            <div><strong>${item.label}</strong><span>出现 ${item.mistakes} 次 · 掌握 ${item.mastery}%</span></div>
+            <div class="weakness-bar"><i style="width:${pressure}%"></i></div>
+          `;
+          this.trainingWeakness.appendChild(row);
+        }
+      }
+
+      const bookTitle = document.createElement('div');
+      bookTitle.className = 'mistake-book-head';
+      bookTitle.innerHTML = `<strong>个人错题本</strong><span>可训练 ${data.trainableMistakes || 0}</span>`;
+      this.mistakeBook.appendChild(bookTitle);
+
+      const puzzleById = new Map((puzzles || []).map(puzzle => [puzzle.id, puzzle]));
+      if (!data.recentMistakes?.length) {
+        const empty = document.createElement('p');
+        empty.className = 'helper-text';
+        empty.textContent = '高可信的实战错误会自动出现在这里。';
+        this.mistakeBook.appendChild(empty);
+        return;
+      }
+
+      for (const mistake of data.recentMistakes) {
+        const puzzle = puzzleById.get(mistake.id);
+        if (!puzzle) continue;
+        this.mistakeMap.set(puzzle.id, puzzle);
+        const card = document.createElement('article');
+        card.className = 'mistake-book-card';
+        const when = mistake.sourceFinishedAt
+          ? new Date(mistake.sourceFinishedAt).toLocaleDateString([], { month: '2-digit', day: '2-digit' })
+          : '历史对局';
+        card.innerHTML = `
+          <div>
+            <strong>${G.ErrorTaxonomy.info(mistake.type).label}</strong>
+            <span>第 ${mistake.moveIndex + 1} 手 · ${when} · 可信度 ${mistake.confidence}%</span>
+          </div>
+          <button type="button" data-mistake-puzzle="${puzzle.id}">再练一次</button>
+        `;
+        this.mistakeBook.appendChild(card);
+      }
     }
 
     renderOpenings(openings) {
@@ -307,10 +395,28 @@
       this.branchBar.classList.add('hidden');
     }
 
-    showTraining(puzzle, index, total, feedback = '') {
-      this.trainingPrompt.textContent = `训练 ${index + 1}/${total} · ${puzzle.prompt}`;
-      this.trainingFeedback.textContent = feedback;
-      this.trainingNext.disabled = !feedback;
+    showTraining(state) {
+      const puzzle = state?.puzzles?.[state.index];
+      if (!puzzle) return;
+      const taxonomy = G.ErrorTaxonomy.info(puzzle.category);
+      const source = puzzle.sourceKind === 'mistake' ? '个人错题' : '历史战术';
+      const confidence = puzzle.confidence ? ` · 题目可信度 ${puzzle.confidence}%` : '';
+      this.trainingPrompt.textContent = state.sessionDone
+        ? '本轮自适应训练完成'
+        : `训练 ${state.index + 1}/${state.puzzles.length} · ${puzzle.prompt}`;
+      this.trainingMeta.textContent = `${source} · ${taxonomy.label} · 原对局第 ${puzzle.moveIndex + 1} 手${confidence}`;
+      this.trainingFeedback.textContent = state.feedback || '';
+      this.trainingFeedback.dataset.grade = state.sessionDone ? '' : (state.result?.grade || '');
+      this.trainingDetail.textContent = state.result?.explanation || (
+        puzzle.actual
+          ? `原实战：${G.History.coordinate(puzzle.actual)} · 推荐：${G.History.coordinate(puzzle.expected)}`
+          : ''
+      );
+      this.trainingVariation.disabled = !state.feedback || state.sessionDone;
+      this.trainingNext.disabled = !state.feedback;
+      this.trainingNext.textContent = state.sessionDone
+        ? '返回棋局'
+        : state.index >= state.puzzles.length - 1 ? '完成本轮' : '下一题';
       this.trainingCard.classList.remove('hidden');
     }
 

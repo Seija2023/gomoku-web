@@ -1016,3 +1016,137 @@ button.primary {
   color: #fff;
   background: #4b5f69;
 }
+
+
+.training-meta,
+.training-detail {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.training-feedback[data-grade="best"] {
+  color: #3f6b4f;
+  font-weight: 800;
+}
+
+.training-feedback[data-grade="good"] {
+  color: #6b603f;
+  font-weight: 800;
+}
+
+.training-feedback[data-grade="wrong"] {
+  color: #8a463a;
+  font-weight: 800;
+}
+
+.training-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.training-weakness,
+.mistake-book {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(55,39,21,.09);
+}
+
+.training-weakness-head,
+.mistake-book-head,
+.mistake-book-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.training-weakness-head span,
+.mistake-book-head span,
+.weakness-row span,
+.mistake-book-card span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.weakness-row {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: rgba(143,101,53,.055);
+}
+
+.weakness-row > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.weakness-row strong {
+  font-size: 11px;
+}
+
+.weakness-bar {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(46,43,39,.08);
+}
+
+.weakness-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(139,86,55,.52);
+}
+
+.mistake-book {
+  display: grid;
+  gap: 7px;
+}
+
+.mistake-book-head {
+  margin-bottom: 1px;
+}
+
+.mistake-book-card {
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: rgba(143,101,53,.055);
+}
+
+.mistake-book-card > div {
+  min-width: 0;
+}
+
+.mistake-book-card strong,
+.mistake-book-card span {
+  display: block;
+}
+
+.mistake-book-card strong {
+  font-size: 11px;
+}
+
+.mistake-book-card span {
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.mistake-book-card button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: #e9e1d6;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.mini-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}

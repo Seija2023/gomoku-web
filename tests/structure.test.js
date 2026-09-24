@@ -7,7 +7,7 @@ const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'u
 const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.6.0 Variation Lab 与 Local AI 2.0 模块', () => {
+test('入口文件加载 v2.7.0 Adaptive Training 与 Variation Lab 模块', () => {
   for (const path of [
     'js/app/render-flags.js',
     'js/game/position.js',
@@ -23,7 +23,11 @@ test('入口文件加载 v2.6.0 Variation Lab 与 Local AI 2.0 模块', () => {
     'js/services/derived-service.js',
     'js/ai/search.js',
     'js/analysis/advantage.js',
+    'js/training/taxonomy.js',
+    'js/training/mistake-miner.js',
     'js/training/scheduler.js',
+    'js/training/adaptive-engine.js',
+    'js/training/training-workflow.js',
     'js/share/codec.js',
     'js/ui/insights.js',
     'js/ui/position-editor.js',
@@ -62,7 +66,9 @@ test('页面保留 v2.3 核心 PC 与手机控件', () => {
     'counterfactualUserMove','counterfactualAiMove','editorStartPvpBtn','editorStartAiBtn',
     'aiSearchStatus','searchInspector','searchDepthHistory','searchStability',
     'variationStartBtn','variationResumeBtn','variationCard','variationTreeList',
-    'variationChildren','variationExpandBtn','variationFavoriteBtn'
+    'variationChildren','variationExpandBtn','variationFavoriteBtn',
+    'mistakeTrainingBtn','mistakeTrainingCount','trainingWeakness','mistakeBook',
+    'trainingMeta','trainingDetail','trainingVariationBtn'
   ]) assert.match(index, new RegExp(`id="${id}"`));
 });
 
@@ -106,6 +112,7 @@ test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => 
   assert.match(source, /G\.Services\.createAIClient/);
   assert.match(source, /new G\.Controllers\.VariationController/);
   assert.match(source, /new G\.Lab\.VariationWorkflow/);
+  assert.match(source, /new G\.Training\.Workflow/);
 });
 
 test('CI 包含短浏览器 Smoke Test', async () => {
@@ -148,4 +155,20 @@ test('Variation Tree、Ghost Line 2.0 与 Search Inspector 保持模块化边界
   assert.match(insights, /renderSearchInspector/);
   assert.match(insights, /candidate-ghost-btn/);
   assert.match(worker, /searchTrace/);
+});
+
+
+test('Adaptive Training 使用独立错误挖掘、分类和自适应计划模块', async () => {
+  const miner = await readFile(new URL('../js/training/mistake-miner.js', import.meta.url), 'utf8');
+  const adaptive = await readFile(new URL('../js/training/adaptive-engine.js', import.meta.url), 'utf8');
+  const puzzles = await readFile(new URL('../js/training/puzzles.js', import.meta.url), 'utf8');
+  const workflow = await readFile(new URL('../js/training/training-workflow.js', import.meta.url), 'utf8');
+  assert.match(miner, /WIN_MISS/);
+  assert.match(miner, /FORCED_DEFENSE_MISS/);
+  assert.match(miner, /trainable/);
+  assert.match(adaptive, /categoryStats/);
+  assert.match(adaptive, /weakness/);
+  assert.match(puzzles, /grade: 'good'/);
+  assert.match(workflow, /startMistakes/);
+  assert.match(workflow, /openVariation/);
 });
