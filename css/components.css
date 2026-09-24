@@ -592,3 +592,86 @@ button.primary {
   cursor: crosshair;
   touch-action: none;
 }
+
+
+.position-editor-card {
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid rgba(55,39,21,.12);
+  border-radius: 18px;
+  background: rgba(255,250,242,.94);
+  box-shadow: 0 10px 28px rgba(48,35,20,.08);
+}
+
+.editor-header,
+.editor-toolbar,
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-header {
+  justify-content: space-between;
+}
+
+.editor-header strong {
+  font-size: 17px;
+}
+
+.editor-header button,
+.editor-tool-switch button,
+.editor-actions button {
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: #e9e1d6;
+  color: #2d2924;
+  font-weight: 700;
+}
+
+.editor-toolbar {
+  align-items: end;
+  margin-top: 14px;
+}
+
+.editor-control {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.editor-control:first-child {
+  flex: 2 1 320px;
+}
+
+.editor-tool-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.editor-tool-switch button.active {
+  color: #fff;
+  background: #2e2b27;
+}
+
+.editor-summary {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.editor-actions {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.editor-actions button {
+  flex: 1 1 120px;
+}
+
+.position-editor-card button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
