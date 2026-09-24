@@ -179,6 +179,14 @@
         prefix: this.state.target.moves.slice(0, this.state.index),
       };
     }
+
+    variationData() {
+      if (!this.state.active || !this.state.target) return null;
+      return {
+        index: this.state.index,
+        prefix: this.state.target.moves.slice(0, this.state.index),
+      };
+    }
   }
 
   G.Controllers = G.Controllers || {};
