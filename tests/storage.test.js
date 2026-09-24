@@ -9,9 +9,15 @@ globalThis.localStorage = {
   removeItem: key => data.delete(key),
 };
 await import('../js/config.js');
+await import('../js/storage/migrations.js');
 await import('../js/storage/storage.js');
 
-const { Storage, Config } = globalThis.Gomoku;
+const { Storage, StorageMigrations, Config } = globalThis.Gomoku;
+
+test('存储 schema 会迁移到当前版本', () => {
+  assert.equal(Storage.SCHEMA_VERSION, StorageMigrations.CURRENT_SCHEMA);
+  assert.equal(JSON.parse(data.get(StorageMigrations.SCHEMA_KEY)), StorageMigrations.CURRENT_SCHEMA);
+});
 
 test('未完成棋局可以保存与读取', () => {
   const snapshot = { moves: [{ r: 7, c: 7, player: 1 }], gameOver: false };
@@ -33,7 +39,7 @@ test('历史记录可写入和删除', () => {
   assert.equal(Storage.listHistory().some(item => item.id === 'x'), false);
 });
 
-test('v2.3 智能分析设置可以持久化并补齐默认值', () => {
+test('v2.3 设置保持兼容并可持久化', () => {
   const settings = {
     difficulty: Config.AI_DIFFICULTIES.HARD,
     persona: Config.AI_PERSONAS.ATTACK,
