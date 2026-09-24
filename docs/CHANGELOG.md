@@ -1,75 +1,134 @@
 # Changelog
 
-## v2.3.3
+记录 Gomoku Web 的重要用户功能、架构与工程变更。当前版本：**v2.8.1**。
 
-### 架构
+## v2.8.1 — Engineering Governance
 
-- 将普通对局、复盘、分支、训练和分享拆分为独立 Controller。
-- `main.js` 从约 970 行缩减到约 590 行，主要负责依赖组装和跨模块协调。
-- 新增 `MainThreadAIClient`，为未来 Web Worker AI 保留稳定调用接口。
-- AI Client 继续沿用 RequestGate，旧异步结果不能写回新状态。
+### Changed
 
-### 自动回归
+- 建立仓库治理文件：`.gitignore`、`.editorconfig`、`.gitattributes`、贡献指南、开发指南与 PR / Issue 模板。
+- 新增零第三方依赖的 Architecture Lint，并接入 CI。
+- CI 增加并发取消、15 分钟超时和 artifact 保留期。
+- `dist/` 改为纯生成目录，不再跟踪过期 Standalone 文件。
+- ShareController 不再直接使用 DOM / Clipboard API，浏览器能力下沉到 `js/platform/share-adapter.js`。
+- AudioManager 不再直接访问 localStorage，音效偏好统一进入 Settings。
+- Storage schema 升级到 5，自动迁移旧 `gomoku-sound` 设置。
+- 重写 Architecture / Usage 文档，使文档与 v2.8 架构一致。
 
-- 新增依赖零第三方浏览器库的 Chrome Smoke Test。
-- CI 自动验证棋盘 225 格、实际落子、AI回应、增量棋盘初始化和自动复盘不滚屏。
-- 保持 v2.3.2 的主要功能、UI、手机 Ghost Line、历史数据和单文件构建兼容。
+### Quality
 
-## v2.3.2
+- Architecture lint 强制 Controller / Domain 不碰 DOM、非 Storage 模块不碰 localStorage、底层搜索不向上穿层。
+- 文档版本与 package version 纳入自动检查。
+- 生成目录是否被 Git 跟踪纳入自动检查。
 
-### 调度与性能
+## v2.8.0 — Workspace & UX 2.0
 
-- 新增区域级 Dirty Refresh，避免音效、复盘播放等操作触发无关 UI 重算。
-- 复盘棋谱、关键点和分析内容改为静态内容复用，自动播放只更新动态状态。
-- 历史训练题、玩家画像和开局库加入派生数据缓存。
-- 训练答题只刷新训练相关统计，不再重复渲染历史和画像。
-- 删除分支终局路径中的重复刷新。
+### Added
 
-### 扩展基础
+- 四工作区：对局 / 分析 / 训练 / 实验室。
+- PC 顶部导航与移动端固定底部导航。
+- WorkspaceManager、SessionWorkflow、RenderCoordinator 和 BootGuard。
 
-- 新增 `RenderFlags`，为后续 Controller 拆分提供统一渲染边界。
-- 新增 `RequestGate`，支持旧 AI 请求失效和未来异步 Worker 结果防串线。
-- 性能诊断增加 derived/review/request 指标。
-- 保持 v2.3.1 的界面、功能、移动端 Ghost Line 和自动复盘不滚动行为。
+### Changed
 
-## v2.3.1
+- Search Inspector、训练弱点、玩家画像、开局库、历史与规则采用渐进展开。
+- `main.js` 从约 772 行缩减到约 444 行。
+- `main.js` 的直接 `state.active` 判断从 31 次降到 0。
+- 桌面候选卡改为更适合窄侧栏的纵向呈现。
 
-### 性能
+### Quality
 
-- 棋盘改为一次初始化和增量更新，不再在每次 render 重建 225 个格子。
-- 棋盘交互改为容器级事件委托。
-- 候选手、Ghost Line、热力图和优势曲线接入统一 LRU 分析缓存。
-- AI 落子复用同局面已计算的 ranked candidates。
-- 智能分析面板在内容不变时跳过重复 DOM 重建。
+- Chrome Smoke 增加工作区切换、特殊模式锁定、刷新持久化和 390px 移动端导航检查。
+- v2.8.0 发布时 116 个测试全部通过。
 
-### 架构
+## v2.7.0 — Adaptive Training
 
-- 新增统一 `Position` 局面模型。
-- 新增 `AnalysisService`，作为 UI/Controller 与 AI 算法之间的稳定接口。
-- 新增 storage schema migration，为后续数据格式升级保留迁移链路。
-- 棋盘增加持久 layer 结构，为未来标注、摆局等功能预留扩展点。
-- 增加轻量性能诊断接口。
+### Added
 
-### 稳定性
+- Mistake Miner：从历史人机对局识别高可信个人错误。
+- 错误分类：错过直接胜、漏防强制威胁、战术漏算、防守优先级不足、棋形效率损失。
+- 个人错题本、近期弱点和自适应训练计划。
+- “最佳 / 可接受次优 / 错误”三级训练反馈。
+- Training ↔ Variation Tree 工作流。
 
-- 恢复存档时严格验证落子轮次和重复位置。
-- 分享棋谱严格验证非法序列和胜者一致性。
-- 保留 v2.3.0 全部主要功能、界面、移动端 Ghost Line 与自动复盘不滚动行为。
+### Changed
+
+- 间隔复习根据训练结果采用不同晋级节奏。
+- Player Profile 增加错误分类、评分损失和首要弱点。
+- 历史派生数据加入 Mistake Mining 缓存。
+
+## v2.6.0 — Variation Lab
+
+### Added
+
+- 持久化 Variation Tree，多分支手动 / AI 探索。
+- 节点命名、收藏、删除、父节点 / 根节点导航和恢复。
+- AI 自动扩展 A/B/C 候选并写入 Principal Variation。
+- Ghost Line 2.0：候选变化线可锁定，最多 7 ply。
+- AI Search Inspector 和每层 Iterative Deepening trace。
+
+### Stability
+
+- Variation Tree 恢复加入结构、循环、可达性与合法局面校验。
+
+## v2.5.0 — Local AI 2.0
+
+### Added
+
+- 默认 WorkerAIClient 与 MainThread fallback。
+- Iterative Deepening、Alpha-Beta、时间预算、战术候选优先与 Transposition Table。
+- 不同 AI 难度的时间 / 深度 / 宽度预算。
+- 设备自适应搜索预算。
+- 外部 Worker 与 Standalone Blob Worker。
+
+### Changed
+
+- Counterfactual 使用更深本地搜索。
+- 搜索状态增加深度、节点、耗时、缓存、战术节点和推荐手。
+
+## v2.4.0 — Position Lab
+
+### Added
+
+- Position Editor：自由摆放黑 / 白棋、擦除和指定下一手。
+- 从任意合法非终局局面开始 PVP / AI。
+- Counterfactual Analysis：实战尝试与 AI 推荐比较。
+- 自定义局面的 AI 候选分析、保存与恢复。
+
+### Changed
+
+- AI 候选和 AnalysisService 缓存键改为真实棋盘状态，支持没有普通 moves 历史的局面。
+
+## v2.3.3 — Controller Foundation
+
+- Game / Review / Branch / Training / Share 拆为独立 Controller。
+- 引入 AI Client 稳定边界和 RequestGate。
+- `main.js` 从约 970 行缩减到约 590 行。
+- 新增真实 Chrome Smoke CI。
+
+## v2.3.2 — Scheduling & Derived Cache
+
+- 引入 RenderFlags / Dirty Refresh。
+- DerivedService 缓存训练、画像和开局派生数据。
+- ReviewView 避免自动播放时重复重建静态 DOM。
+
+## v2.3.1 — Performance Foundation
+
+- BoardView 改为一次初始化和增量更新。
+- 引入 Position、AnalysisService 和 Storage Migration。
+- 候选、Ghost Line、Heatmap 与优势分析共享缓存。
 
 ## v2.3.0
 
-- Ghost Line：PC 悬停 / 手机长按拖动。
-- AI 棋风人格、候选 A/B/C、优势曲线。
-- 棋局分享、残局挑战、间隔复习、个人开局库。
+- Ghost Line、AI Personas、候选 A/B/C、优势曲线。
+- 分享挑战、间隔复习与个人开局库。
 
 ## v2.2.0
 
-- 三档 AI、可解释 AI 和威胁热力图。
-- 关键手 / 失误检测、复盘时间轴与关键手模式。
-- What-if 分支推演、残局训练和玩家棋风统计。
+- 三档 AI、热力图、可解释 AI、关键手 / 失误分析。
+- What-if 分支、训练和玩家棋风统计。
 
 ## v2.1.0
 
-- 非阻塞终局结果卡、终局悔棋、胜利高亮。
-- 完整复盘、棋谱、坐标和基础分析。
-- 最近 20 局历史记录与未完成棋局自动恢复。
+- 非阻塞终局卡、终局悔棋与胜利高亮。
+- 完整复盘、历史记录和未完成棋局恢复。
