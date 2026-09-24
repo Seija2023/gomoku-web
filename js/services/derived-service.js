@@ -44,8 +44,8 @@
       }
 
       this.metrics.historyMisses += 1;
-      const mistakes = G.MistakeMiner.mine(records);
-      const puzzles = G.Puzzles.generate(records, G.Config.MAX_TRAINING_PUZZLES, mistakes);
+      const mistakes = G.MistakeMiner?.mine?.(records) || [];
+      const puzzles = G.Puzzles.generate(records, G.Config?.MAX_TRAINING_PUZZLES, mistakes);
       const value = Object.freeze({
         mistakes,
         puzzles,
@@ -67,7 +67,15 @@
 
       this.metrics.trainingMisses += 1;
       const trainingStats = G.TrainingScheduler.stats(history.puzzles, progress);
-      const adaptive = G.AdaptiveTraining.summary(history.puzzles, progress, history.mistakes);
+      const adaptive = G.AdaptiveTraining?.summary?.(history.puzzles, progress, history.mistakes) || {
+        categories: [],
+        topWeakness: null,
+        recentMistakes: [],
+        trainableMistakes: 0,
+        totalMistakes: history.mistakes.length,
+        totalAttempts: 0,
+        accuracy: trainingStats.accuracy || 0,
+      };
       const trainingValue = Object.freeze({ trainingStats, adaptive });
       this.trainingCache = { key, value: trainingValue };
       return { ...history, ...trainingValue };
