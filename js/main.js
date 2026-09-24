@@ -175,14 +175,18 @@
     return shown.currentPlayer;
   }
 
-  function refreshDerived() {
-    const records = G.Storage.listHistory();
+  function refreshTrainingDerived(records = G.Storage.listHistory()) {
     const derived = derivedService.training(records, trainingProgress);
-    panel.renderHistory(records, openHistoryRecord);
     availablePuzzles = derived.puzzles;
-
     insights.renderTrainingCount(derived.trainingStats.due, derived.trainingStats.total);
     insights.renderTrainingStats(derived.trainingStats);
+    return derived;
+  }
+
+  function refreshDerived() {
+    const records = G.Storage.listHistory();
+    const derived = refreshTrainingDerived(records);
+    panel.renderHistory(records, openHistoryRecord);
     insights.renderProfile(derived.profile);
     insights.renderOpenings(derived.openings);
   }
@@ -578,7 +582,7 @@
     if (!review.active || !review.playing) return;
     if (review.index >= review.target.moves.length) {
       stopReviewPlayback();
-      refresh();
+      refresh(RenderFlags.REVIEW);
       return;
     }
 
@@ -779,7 +783,7 @@
     trainingProgress = G.TrainingScheduler.update(trainingProgress, puzzle.id, result.correct);
     G.Storage.saveTrainingProgress(trainingProgress);
     derivedService.invalidateTraining();
-    refreshDerived();
+    refreshTrainingDerived();
     refresh();
   }
 
