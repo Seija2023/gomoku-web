@@ -24,8 +24,9 @@
       this.onSeek = null;
       this.moveButtons = new Map();
       this.activeMoveIndex = null;
-      this.structureKey = '';
-      this.analysisKey = '';
+      this.lastMoves = null;
+      this.lastAnalysis = null;
+      this.lastKeyOnly = null;
       this.metrics = { renders: 0, listBuilds: 0, markerBuilds: 0, analysisBuilds: 0 };
 
       this.moveList.addEventListener('click', event => {
@@ -57,24 +58,6 @@
 
     show() { this.card.classList.remove('hidden'); }
     hide() { this.card.classList.add('hidden'); }
-
-    makeStructureKey(moves, analysis, keyOnly) {
-      return [
-        moves.length,
-        keyOnly ? 1 : 0,
-        analysis.moments.map(item => `${item.index}:${item.type}:${item.label}`).join('|'),
-      ].join('::');
-    }
-
-    makeAnalysisKey(analysis) {
-      return [
-        analysis.totalMoves,
-        analysis.winner,
-        analysis.winnerText,
-        analysis.direction,
-        analysis.moments.map(item => `${item.index}:${item.player}:${item.coordinate}:${item.label}`).join('|'),
-      ].join('::');
-    }
 
     rebuildMoveList(moves, analysis, keyOnly) {
       const keyMap = new Map(analysis.moments.map(item => [item.index, item]));
@@ -171,17 +154,21 @@
       this.timeline.max = String(moves.length);
       this.timeline.value = String(index);
 
-      const structureKey = this.makeStructureKey(moves, analysis, keyOnly);
-      if (structureKey !== this.structureKey) {
-        this.structureKey = structureKey;
+      const structureChanged =
+        moves !== this.lastMoves
+        || analysis !== this.lastAnalysis
+        || keyOnly !== this.lastKeyOnly;
+
+      if (structureChanged) {
         this.rebuildMoveList(moves, analysis, keyOnly);
         this.rebuildMarkers(moves, analysis);
+        this.lastMoves = moves;
+        this.lastKeyOnly = keyOnly;
       }
 
-      const analysisKey = this.makeAnalysisKey(analysis);
-      if (analysisKey !== this.analysisKey) {
-        this.analysisKey = analysisKey;
+      if (analysis !== this.lastAnalysis) {
         this.rebuildAnalysis(analysis);
+        this.lastAnalysis = analysis;
       }
 
       this.updateActiveMove(index);
