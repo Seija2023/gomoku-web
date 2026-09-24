@@ -52,3 +52,35 @@
   .context-bar { align-items: flex-start; flex-direction: column; }
   .context-bar button { width: 100%; }
 }
+
+@media (max-width: 900px) {
+  .candidate-compare { grid-template-columns: repeat(3, minmax(160px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
+}
+
+@media (max-width: 620px) {
+  .control-grid { grid-template-columns: 1fr; }
+  .candidate-compare {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    gap: 10px;
+    padding-bottom: 6px;
+  }
+  .candidate-card {
+    flex: 0 0 min(82%, 260px);
+    scroll-snap-align: start;
+  }
+  .candidate-heading,
+  .advantage-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .advantage-chart { height: 112px; }
+  .ghost-piece { width: 6.1%; font-size: 8px; }
+}
+
+@media (max-width: 390px) {
+  .mini-stats { gap: 5px; }
+  .mini-stats > div { padding-inline: 4px; }
+}

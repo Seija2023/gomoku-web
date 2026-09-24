@@ -14,6 +14,8 @@
       this.exitBtn = doc.getElementById('reviewExitBtn');
       this.branchBtn = doc.getElementById('reviewBranchBtn');
       this.keyOnlyBtn = doc.getElementById('reviewKeyOnlyBtn');
+      this.shareBtn = doc.getElementById('reviewShareBtn');
+      this.challengeBtn = doc.getElementById('reviewChallengeBtn');
       this.timeline = doc.getElementById('reviewTimeline');
       this.keyMarkers = doc.getElementById('reviewKeyMarkers');
       this.moveList = doc.getElementById('moveList');
@@ -29,6 +31,8 @@
       this.exitBtn.addEventListener('click', handlers.exit);
       this.branchBtn.addEventListener('click', handlers.startBranch);
       this.keyOnlyBtn.addEventListener('click', handlers.toggleKeyOnly);
+      this.shareBtn.addEventListener('click', handlers.shareGame);
+      this.challengeBtn.addEventListener('click', handlers.shareChallenge);
       this.timeline.addEventListener('input', () => handlers.seek(Number(this.timeline.value)));
     }
 
@@ -44,6 +48,7 @@
       this.nextBtn.disabled = index >= moves.length;
       this.endBtn.disabled = index >= moves.length;
       this.branchBtn.disabled = index >= moves.length;
+      this.challengeBtn.disabled = index >= moves.length;
       this.timeline.min = '0';
       this.timeline.max = String(moves.length);
       this.timeline.value = String(index);
@@ -98,7 +103,7 @@
 
       const note = document.createElement('p');
       note.className = 'analysis-note';
-      note.textContent = '关键手与失误来自本地棋形规则和启发式分析，不等同于专业求解器的唯一最佳手。';
+      note.textContent = '关键手、失误与优势曲线来自本地棋形规则和启发式评分，不等同于专业求解器的唯一最佳手。';
       this.analysis.appendChild(note);
     }
   }

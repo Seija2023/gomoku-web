@@ -9,8 +9,9 @@ await import('../js/game/history.js');
 await import('../js/analysis/analyzer.js');
 await import('../js/training/puzzles.js');
 await import('../js/training/profile.js');
+await import('../js/training/scheduler.js');
 
-const { Config, Puzzles, Profile } = globalThis.Gomoku;
+const { Config, Puzzles, Profile, TrainingScheduler } = globalThis.Gomoku;
 
 function record() {
   return {
@@ -41,4 +42,15 @@ test('玩家画像按人机历史统计', () => {
   assert.equal(profile.games, 1);
   assert.equal(profile.wins, 1);
   assert.ok(profile.centerRate >= 0 && profile.centerRate <= 100);
+});
+
+test('间隔复习答错会很快再出现，连续答对会拉长间隔', () => {
+  const now = 1_000_000;
+  let progress = {};
+  progress = TrainingScheduler.update(progress, 'p1', false, now);
+  assert.equal(progress.p1.dueAt, now + 5 * 60 * 1000);
+  progress = TrainingScheduler.update(progress, 'p1', true, now);
+  const firstDue = progress.p1.dueAt;
+  progress = TrainingScheduler.update(progress, 'p1', true, now);
+  assert.ok(progress.p1.dueAt > firstDue);
 });

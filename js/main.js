@@ -4,6 +4,7 @@
     WHITE,
     MODES,
     AI_DIFFICULTIES,
+    AI_PERSONAS,
     AI_DELAY_MS,
     RESULT_DELAY_MS,
     REVIEW_STEP_MS,
@@ -14,7 +15,8 @@
   const panel = new G.UI.PanelView(document);
   const reviewView = new G.UI.ReviewView(document);
   const insights = new G.UI.InsightsView(document);
-  const boardView = new G.UI.BoardView(document.getElementById('board'), handleCellClick);
+  const settings = G.Storage.loadSettings();
+  let trainingProgress = G.Storage.loadTrainingProgress();
 
   let aiThinking = false;
   let aiTimer = null;
@@ -22,7 +24,6 @@
   let currentHistoryId = null;
   let lastAiInsight = null;
   let availablePuzzles = [];
-  const settings = G.Storage.loadSettings();
 
   const review = {
     active: false,
@@ -31,7 +32,9 @@
     timer: null,
     target: null,
     analysis: null,
+    advantage: [],
     keyOnly: false,
+    shared: false,
   };
 
   const branchState = {
@@ -42,6 +45,7 @@
     aiPlayer: WHITE,
     aiThinking: false,
     lastInsight: null,
+    shared: false,
   };
 
   const training = {
@@ -52,12 +56,33 @@
     feedback: '',
   };
 
+  const boardView = new G.UI.BoardView(
+    document.getElementById('board'),
+    handleCellClick,
+    handleCellPreview,
+  );
+
+  const advantageChart = new G.UI.AdvantageChart(
+    document.getElementById('advantageChart'),
+    document.getElementById('advantageLabel'),
+    index => seekReview(index),
+  );
+
   function cloneMoves(moves) {
     return (moves || []).map(move => ({ ...move }));
   }
 
   function opponentOf(player) {
     return player === BLACK ? WHITE : BLACK;
+  }
+
+  function clearHash() {
+    if (!location.hash) return;
+    try {
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+    } catch {
+      location.hash = '';
+    }
   }
 
   function clearAiAndResultTimers() {
@@ -75,16 +100,31 @@
     review.playing = false;
   }
 
+  function deriveWinningLine(moves, winner) {
+    if (!winner || !moves.length) return null;
+    const board = G.History.boardAt(moves);
+    for (let i = moves.length - 1; i >= 0; i -= 1) {
+      const move = moves[i];
+      if (move.player !== winner) continue;
+      const line = G.Rules.findWinningLine(board, move.r, move.c, winner);
+      if (line) return line;
+    }
+    return null;
+  }
+
   function makeReviewTarget(source) {
     const moves = cloneMoves(source.moves || []);
+    const winner = source.winner || 0;
     return {
       mode: source.mode || MODES.PVP,
       moves,
       board: G.History.boardAt(moves),
       currentPlayer: source.currentPlayer || (moves.length % 2 === 0 ? BLACK : WHITE),
       gameOver: true,
-      winner: source.winner || 0,
-      winningLine: source.winningLine ? source.winningLine.map(cell => ({ ...cell })) : null,
+      winner,
+      winningLine: source.winningLine
+        ? source.winningLine.map(cell => ({ ...cell }))
+        : deriveWinningLine(moves, winner),
     };
   }
 
@@ -119,17 +159,37 @@
     return { board: shown.board, moves: shown.moves };
   }
 
+  function analysisPlayer(shown, displayed) {
+    if (training.active) return training.puzzles[training.index]?.player || BLACK;
+    if (review.active) {
+      if (review.index >= shown.moves.length) return null;
+      return review.index % 2 === 0 ? BLACK : WHITE;
+    }
+    if (shown.gameOver) return null;
+    return shown.currentPlayer;
+  }
+
   function refreshDerived() {
     const records = G.Storage.listHistory();
     panel.renderHistory(records, openHistoryRecord);
     availablePuzzles = G.Puzzles.generate(records);
-    insights.renderTrainingCount(availablePuzzles.length);
+
+    const trainingStats = G.TrainingScheduler.stats(availablePuzzles, trainingProgress);
+    insights.renderTrainingCount(trainingStats.due, trainingStats.total);
+    insights.renderTrainingStats(trainingStats);
     insights.renderProfile(G.Profile.compute(records));
+    insights.renderOpenings(G.Openings.build(records));
   }
 
   function saveSettings() {
     G.Storage.saveSettings(settings);
     insights.renderSettings(settings);
+  }
+
+  function buildCandidateAnalysis(board, moves, player) {
+    if (!player || !moves.length) return [];
+    const base = G.AI.compareCandidates(board, moves, player, settings.persona, 3);
+    return G.AISearch.enrichCandidates(board, moves, player, base, settings.persona);
   }
 
   function refresh() {
@@ -148,7 +208,9 @@
       locked = branchState.aiThinking
         || branchState.game.gameOver
         || branchState.game.currentPlayer !== branchState.humanPlayer;
-      statusOverride = branchState.aiThinking ? '分支 AI 思考中' : '分支推演';
+      statusOverride = branchState.shared
+        ? (branchState.aiThinking ? '挑战 AI 思考中' : '分享挑战')
+        : (branchState.aiThinking ? '分支 AI 思考中' : '分支推演');
       thinking = branchState.aiThinking;
     } else if (review.active) {
       locked = true;
@@ -165,7 +227,15 @@
 
     const reviewIndex = review.active ? review.index : null;
     const showWinningLine = review.active && review.index < shown.moves.length ? null : shown.winningLine;
-    boardView.render(shown, { locked, reviewIndex, winningLine: showWinningLine, heatmap });
+    const ghostEnabled = settings.ghost && !training.active && !review.active && !locked;
+
+    boardView.render(shown, {
+      locked,
+      reviewIndex,
+      winningLine: showWinningLine,
+      heatmap,
+      ghostEnabled,
+    });
 
     let modePresentation = shown;
     if (branchState.active) modePresentation = { ...shown, mode: MODES.AI };
@@ -181,6 +251,12 @@
     insights.renderSettings(settings);
     insights.renderExplanation(branchState.active ? branchState.lastInsight : lastAiInsight);
 
+    const candidatePlayer = training.active ? null : analysisPlayer(shown, displayed);
+    const candidates = candidatePlayer
+      ? buildCandidateAnalysis(displayed.board, displayed.moves, candidatePlayer)
+      : [];
+    insights.renderCandidates(candidates, candidatePlayer);
+
     if (review.active) {
       reviewView.show();
       reviewView.render(
@@ -191,12 +267,14 @@
         seekReview,
         review.keyOnly,
       );
+      advantageChart.set(review.advantage, review.index);
     } else {
       reviewView.hide();
+      advantageChart.set([], 0);
     }
 
     if (branchState.active) {
-      insights.showBranch(branchState.originIndex, branchState.humanPlayer);
+      insights.showBranch(branchState.originIndex, branchState.humanPlayer, branchState.shared);
     } else {
       insights.hideBranch();
     }
@@ -211,6 +289,23 @@
     } else {
       insights.hideTraining();
     }
+  }
+
+  function handleCellPreview(r, c) {
+    if (!settings.ghost || review.active || training.active) return null;
+    const shown = displayGame();
+    if (!shown || shown.gameOver || shown.board[r]?.[c] !== 0) return null;
+    if (branchState.active && shown.currentPlayer !== branchState.humanPlayer) return null;
+    if (!branchState.active && shown.mode === MODES.AI && shown.currentPlayer === WHITE) return null;
+
+    return G.AISearch.previewLine(
+      shown.board,
+      shown.moves,
+      r,
+      c,
+      shown.currentPlayer,
+      settings.persona,
+    );
   }
 
   function persistCurrent() {
@@ -230,6 +325,7 @@
       finishedAt: new Date().toISOString(),
       mode: game.mode,
       difficulty: settings.difficulty,
+      persona: settings.persona,
       moves: cloneMoves(game.moves),
       winner: game.winner,
       winningLine: game.winningLine ? game.winningLine.map(cell => ({ ...cell })) : null,
@@ -251,10 +347,13 @@
     review.active = false;
     review.target = null;
     review.analysis = null;
+    review.advantage = [];
     review.keyOnly = false;
+    review.shared = false;
     branchState.active = false;
     branchState.game = null;
     branchState.lastInsight = null;
+    branchState.shared = false;
     training.active = false;
     training.target = null;
     training.feedback = '';
@@ -267,6 +366,7 @@
     G.Storage.clearCurrent();
     currentHistoryId = null;
     lastAiInsight = null;
+    clearHash();
     game.reset();
     refresh();
   }
@@ -334,7 +434,13 @@
         return;
       }
 
-      const detail = G.AI.chooseMoveDetailed(game.board, game.moves, settings.difficulty, WHITE);
+      const detail = G.AI.chooseMoveDetailed(
+        game.board,
+        game.moves,
+        settings.difficulty,
+        WHITE,
+        settings.persona,
+      );
       aiThinking = false;
       if (detail.move) {
         lastAiInsight = { ...detail, move: { ...detail.move } };
@@ -366,16 +472,18 @@
     refresh();
   }
 
-  function startReview(target = null) {
+  function startReview(target = null, shared = false) {
     if (review.active || branchState.active || training.active) return;
     clearAiAndResultTimers();
     panel.hideResult();
     review.target = makeReviewTarget(target || game);
     review.analysis = G.Analyzer.analyze(review.target);
+    review.advantage = G.Advantage.series(review.target.moves);
     review.index = review.target.moves.length;
     review.active = true;
     review.playing = false;
     review.keyOnly = false;
+    review.shared = shared;
     refresh();
   }
 
@@ -397,7 +505,6 @@
 
   function seekRelative(delta) {
     if (!review.active) return;
-
     if (!review.keyOnly) {
       seekReview(review.index + delta);
       return;
@@ -445,7 +552,6 @@
 
   function toggleReviewPlay() {
     if (!review.active) return;
-
     if (review.playing) {
       stopReviewPlayback();
       refresh();
@@ -460,11 +566,15 @@
 
   function exitReview() {
     if (!review.active) return;
+    const wasShared = review.shared;
     stopReviewPlayback();
     review.active = false;
     review.target = null;
     review.analysis = null;
+    review.advantage = [];
     review.keyOnly = false;
+    review.shared = false;
+    if (wasShared) clearHash();
     refresh();
 
     if (game.gameOver) panel.showResult(game);
@@ -473,7 +583,6 @@
 
   function startBranchFromReview() {
     if (!review.active || review.index >= review.target.moves.length) return;
-
     stopReviewPlayback();
     const prefix = review.target.moves.slice(0, review.index);
     const branchGame = new G.Game.Game();
@@ -490,9 +599,36 @@
     branchState.humanPlayer = branchGame.currentPlayer;
     branchState.aiPlayer = opponentOf(branchState.humanPlayer);
     branchState.lastInsight = null;
+    branchState.shared = false;
     branchState.active = true;
     review.active = false;
     refresh();
+  }
+
+  function startSharedChallenge(payload) {
+    clearAiAndResultTimers();
+    const prefix = cloneMoves(payload.moves || []).slice(0, payload.index);
+    const branchGame = new G.Game.Game();
+    const nextPlayer = prefix.length % 2 === 0 ? BLACK : WHITE;
+    const restored = branchGame.restore({
+      mode: MODES.PVP,
+      moves: prefix,
+      currentPlayer: nextPlayer,
+      gameOver: false,
+    });
+    if (!restored || branchGame.gameOver) return false;
+
+    branchState.game = branchGame;
+    branchState.originIndex = prefix.length;
+    branchState.humanPlayer = branchGame.currentPlayer;
+    branchState.aiPlayer = opponentOf(branchState.humanPlayer);
+    branchState.lastInsight = null;
+    branchState.shared = true;
+    branchState.active = true;
+    review.active = false;
+    panel.hideResult();
+    refresh();
+    return true;
   }
 
   function handleBranchMove(r, c) {
@@ -511,7 +647,6 @@
       refresh();
       return;
     }
-
     if (result.draw) {
       audio.playDraw();
       refresh();
@@ -539,6 +674,7 @@
         branchState.game.moves,
         settings.difficulty,
         branchState.aiPlayer,
+        settings.persona,
       );
       branchState.aiThinking = false;
 
@@ -557,10 +693,20 @@
 
   function exitBranch() {
     if (!branchState.active) return;
+    const shared = branchState.shared;
     clearAiAndResultTimers();
     branchState.active = false;
     branchState.game = null;
     branchState.lastInsight = null;
+    branchState.shared = false;
+
+    if (shared) {
+      clearHash();
+      game.reset();
+      refresh();
+      return;
+    }
+
     review.active = true;
     refresh();
   }
@@ -569,7 +715,13 @@
     if (review.active || branchState.active || training.active || !availablePuzzles.length) return;
     clearAiAndResultTimers();
     panel.hideResult();
-    training.puzzles = availablePuzzles.slice();
+    const ordered = G.TrainingScheduler.order(availablePuzzles, trainingProgress);
+    const now = Date.now();
+    const due = ordered.filter(puzzle => {
+      const state = G.TrainingScheduler.stateFor(trainingProgress, puzzle.id);
+      return !state.dueAt || state.dueAt <= now;
+    });
+    training.puzzles = (due.length ? due : ordered).slice();
     training.index = 0;
     training.feedback = '';
     training.target = makeTrainingTarget(training.puzzles[0]);
@@ -583,6 +735,9 @@
     const result = G.Puzzles.check(puzzle, r, c);
     training.feedback = result.message;
     training.target = makeTrainingTarget(puzzle, { r, c });
+    trainingProgress = G.TrainingScheduler.update(trainingProgress, puzzle.id, result.correct);
+    G.Storage.saveTrainingProgress(trainingProgress);
+    refreshDerived();
     refresh();
   }
 
@@ -612,6 +767,14 @@
     refresh();
   }
 
+  function changePersona(value) {
+    if (!Object.values(AI_PERSONAS).includes(value)) return;
+    settings.persona = value;
+    lastAiInsight = null;
+    saveSettings();
+    refresh();
+  }
+
   function toggleHeatmap() {
     settings.heatmap = !settings.heatmap;
     saveSettings();
@@ -625,6 +788,70 @@
     refresh();
   }
 
+  function toggleGhost() {
+    settings.ghost = !settings.ghost;
+    boardView.clearGhost();
+    saveSettings();
+    refresh();
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+    }
+    try {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      return Promise.resolve(ok);
+    } catch {
+      return Promise.resolve(false);
+    }
+  }
+
+  async function sharePayload(payload, label) {
+    const url = `${location.href.split('#')[0]}${G.ShareCodec.makeHash(payload)}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `五子棋 · ${label}`, text: label, url });
+        insights.showShareNotice('已打开系统分享面板。');
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+
+    const copied = await copyText(url);
+    insights.showShareNotice(copied ? '分享链接已复制。' : `分享链接：${url}`);
+  }
+
+  function shareReviewGame() {
+    if (!review.active) return;
+    sharePayload({
+      kind: 'game',
+      moves: review.target.moves,
+      index: review.target.moves.length,
+      winner: review.target.winner,
+      mode: review.target.mode,
+    }, '完整棋局');
+  }
+
+  function shareReviewChallenge() {
+    if (!review.active || review.index >= review.target.moves.length) return;
+    sharePayload({
+      kind: 'challenge',
+      moves: review.target.moves.slice(0, review.index),
+      index: review.index,
+      winner: 0,
+      mode: MODES.PVP,
+    }, `第 ${review.index} 手挑战`);
+  }
+
   panel.bind({ undo, toggleSound, restart, setMode, startReview });
   reviewView.bind({
     seek: seekReview,
@@ -634,11 +861,15 @@
     exit: exitReview,
     startBranch: startBranchFromReview,
     toggleKeyOnly,
+    shareGame: shareReviewGame,
+    shareChallenge: shareReviewChallenge,
   });
   insights.bind({
     changeDifficulty,
+    changePersona,
     toggleHeatmap,
     changeHeatmapMode,
+    toggleGhost,
     startTraining,
     exitBranch,
     nextTraining,
@@ -648,14 +879,21 @@
   refreshDerived();
   saveSettings();
 
-  const saved = G.Storage.loadCurrent();
-  if (saved && game.restore(saved) && game.moves.length && !game.gameOver) {
-    panel.showResumeNotice();
-    refresh();
-    if (game.mode === MODES.AI && game.currentPlayer === WHITE) scheduleAiMove();
+  const shared = G.ShareCodec.parseHash();
+  if (shared?.kind === 'game') {
+    startReview(shared, true);
+  } else if (shared?.kind === 'challenge' && startSharedChallenge(shared)) {
+    insights.showShareNotice('已进入分享挑战：请从当前局面继续。');
   } else {
-    G.Storage.clearCurrent();
-    restart();
+    const saved = G.Storage.loadCurrent();
+    if (saved && game.restore(saved) && game.moves.length && !game.gameOver) {
+      panel.showResumeNotice();
+      refresh();
+      if (game.mode === MODES.AI && game.currentPlayer === WHITE) scheduleAiMove();
+    } else {
+      G.Storage.clearCurrent();
+      restart();
+    }
   }
 
   G.App = Object.freeze({
@@ -666,6 +904,8 @@
     exitReview,
     startBranchFromReview,
     startTraining,
+    shareReviewGame,
+    shareReviewChallenge,
     getGame: () => game,
     getSettings: () => ({ ...settings }),
   });

@@ -4,12 +4,18 @@
   class InsightsView {
     constructor(doc) {
       this.difficulty = doc.getElementById('difficultySelect');
+      this.persona = doc.getElementById('personaSelect');
       this.heatToggle = doc.getElementById('heatmapToggle');
       this.heatMode = doc.getElementById('heatmapMode');
+      this.ghostToggle = doc.getElementById('ghostToggle');
       this.explain = doc.getElementById('aiExplain');
+      this.candidateCompare = doc.getElementById('candidateCompare');
+      this.candidateSide = doc.getElementById('candidateSide');
       this.profile = doc.getElementById('profileContent');
       this.trainingBtn = doc.getElementById('trainingBtn');
       this.trainingCount = doc.getElementById('trainingCount');
+      this.trainingStats = doc.getElementById('trainingStats');
+      this.openingLibrary = doc.getElementById('openingLibrary');
       this.branchBar = doc.getElementById('branchBar');
       this.branchText = doc.getElementById('branchText');
       this.branchExit = doc.getElementById('branchExitBtn');
@@ -18,23 +24,32 @@
       this.trainingFeedback = doc.getElementById('trainingFeedback');
       this.trainingNext = doc.getElementById('trainingNextBtn');
       this.trainingExit = doc.getElementById('trainingExitBtn');
+      this.shareNotice = doc.getElementById('shareNotice');
+      this.shareNoticeText = doc.getElementById('shareNoticeText');
+      this.shareNoticeClose = doc.getElementById('shareNoticeClose');
     }
 
     bind(handlers) {
       this.difficulty.addEventListener('change', () => handlers.changeDifficulty(this.difficulty.value));
+      this.persona.addEventListener('change', () => handlers.changePersona(this.persona.value));
       this.heatToggle.addEventListener('click', handlers.toggleHeatmap);
       this.heatMode.addEventListener('change', () => handlers.changeHeatmapMode(this.heatMode.value));
+      this.ghostToggle.addEventListener('click', handlers.toggleGhost);
       this.trainingBtn.addEventListener('click', handlers.startTraining);
       this.branchExit.addEventListener('click', handlers.exitBranch);
       this.trainingNext.addEventListener('click', handlers.nextTraining);
       this.trainingExit.addEventListener('click', handlers.exitTraining);
+      this.shareNoticeClose.addEventListener('click', () => this.shareNotice.classList.add('hidden'));
     }
 
     renderSettings(settings) {
       this.difficulty.value = settings.difficulty;
+      this.persona.value = settings.persona;
       this.heatMode.value = settings.heatmapMode;
       this.heatToggle.textContent = `热力图：${settings.heatmap ? '开' : '关'}`;
       this.heatToggle.setAttribute('aria-pressed', String(settings.heatmap));
+      this.ghostToggle.textContent = `幽灵线：${settings.ghost ? '开' : '关'}`;
+      this.ghostToggle.setAttribute('aria-pressed', String(settings.ghost));
     }
 
     renderExplanation(insight) {
@@ -45,7 +60,7 @@
       }
 
       const title = document.createElement('strong');
-      title.textContent = `AI：${G.History.coordinate(insight.move)}`;
+      title.textContent = `AI：${G.History.coordinate(insight.move)} · ${insight.explanation.personaLabel || '均衡型'}`;
       this.explain.appendChild(title);
 
       const reason = document.createElement('p');
@@ -57,12 +72,41 @@
       meta.textContent = `进攻价值：${insight.explanation.attackLevel} · 防守价值：${insight.explanation.defenseLevel}`;
       this.explain.appendChild(meta);
 
-      if (insight.candidates?.length) {
-        const small = document.createElement('p');
-        small.className = 'analysis-note';
-        small.textContent = `候选：${insight.candidates.map(item => G.History.coordinate(item)).join(' / ')}`;
-        this.explain.appendChild(small);
+      if (insight.explanation.lookahead) {
+        const lookahead = document.createElement('p');
+        lookahead.className = 'analysis-note';
+        lookahead.textContent = insight.explanation.lookahead;
+        this.explain.appendChild(lookahead);
       }
+    }
+
+    renderCandidates(candidates, player) {
+      this.candidateCompare.innerHTML = '';
+      this.candidateSide.textContent = player ? `${player === BLACK ? '黑' : '白'}方视角` : '';
+
+      if (!candidates?.length) {
+        const empty = document.createElement('p');
+        empty.className = 'helper-text';
+        empty.textContent = '落子后会显示前三个候选点。';
+        this.candidateCompare.appendChild(empty);
+        return;
+      }
+
+      candidates.forEach((item, index) => {
+        const card = document.createElement('article');
+        card.className = 'candidate-card';
+        const letter = String.fromCharCode(65 + index);
+        const reply = item.reply ? G.History.coordinate(item.reply) : '—';
+        const follow = item.followUp ? G.History.coordinate(item.followUp) : '—';
+        card.innerHTML = `
+          <div class="candidate-title"><strong>${letter} · ${G.History.coordinate(item)}</strong><span>${item.score}</span></div>
+          <div class="candidate-row"><span>进攻</span><strong>${item.attackLevel}</strong></div>
+          <div class="candidate-row"><span>防守</span><strong>${item.defenseLevel}</strong></div>
+          <div class="candidate-row"><span>对手回应</span><strong>${reply}</strong></div>
+          <div class="candidate-row"><span>后续建议</span><strong>${follow}</strong></div>
+        `;
+        this.candidateCompare.appendChild(card);
+      });
     }
 
     renderProfile(profile) {
@@ -90,13 +134,52 @@
       });
     }
 
-    renderTrainingCount(count) {
+    renderTrainingCount(count, total = count) {
       this.trainingCount.textContent = String(count);
-      this.trainingBtn.disabled = count === 0;
+      this.trainingBtn.disabled = total === 0;
     }
 
-    showBranch(index, player) {
-      this.branchText.textContent = `分支推演 · 从第 ${index} 手后开始 · 你执${player === BLACK ? '黑' : '白'}`;
+    renderTrainingStats(stats) {
+      this.trainingStats.innerHTML = '';
+      const items = [
+        ['今日复习', stats.due],
+        ['待加强', stats.weak],
+        ['已掌握', stats.mastered],
+      ];
+      items.forEach(([label, value]) => {
+        const item = document.createElement('div');
+        item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+        this.trainingStats.appendChild(item);
+      });
+    }
+
+    renderOpenings(openings) {
+      this.openingLibrary.innerHTML = '';
+      if (!openings?.length) {
+        const empty = document.createElement('p');
+        empty.className = 'helper-text';
+        empty.textContent = '完成更多棋局后会自动整理常用开局。';
+        this.openingLibrary.appendChild(empty);
+        return;
+      }
+
+      openings.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'opening-card';
+        card.innerHTML = `
+          <strong>${item.label || '开局'}</strong>
+          <span>使用 ${item.uses} 次 · 黑胜 ${item.wins} · 白胜 ${item.losses} · 平 ${item.draws}</span>
+          <span>平均 ${item.avgMoves} 手结束</span>
+        `;
+        this.openingLibrary.appendChild(card);
+      });
+    }
+
+    showBranch(index, player, shared = false) {
+      this.branchText.textContent = shared
+        ? `分享挑战 · 从第 ${index} 手开始 · 你执${player === BLACK ? '黑' : '白'}`
+        : `分支推演 · 从第 ${index} 手后开始 · 你执${player === BLACK ? '黑' : '白'}`;
+      this.branchExit.textContent = shared ? '退出挑战' : '返回原局';
       this.branchBar.classList.remove('hidden');
     }
 
@@ -113,6 +196,11 @@
 
     hideTraining() {
       this.trainingCard.classList.add('hidden');
+    }
+
+    showShareNotice(message) {
+      this.shareNoticeText.textContent = message;
+      this.shareNotice.classList.remove('hidden');
     }
   }
 

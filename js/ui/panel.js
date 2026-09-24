@@ -109,7 +109,7 @@
         this.historyList.appendChild(empty);
         return;
       }
-      records.slice(0, 8).forEach(record => {
+      records.slice(0, 20).forEach(record => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'history-item';

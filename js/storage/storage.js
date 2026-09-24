@@ -1,7 +1,8 @@
 (function (G) {
   const CURRENT_KEY = 'gomoku-current-v2';
   const HISTORY_KEY = 'gomoku-history-v2';
-  const SETTINGS_KEY = 'gomoku-settings-v22';
+  const SETTINGS_KEY = 'gomoku-settings-v23';
+  const TRAINING_PROGRESS_KEY = 'gomoku-training-v23';
   const MAX_HISTORY = 20;
 
   function read(key, fallback) {
@@ -58,20 +59,36 @@
   function loadSettings() {
     const defaults = {
       difficulty: G.Config.AI_DIFFICULTIES.NORMAL,
+      persona: G.Config.AI_PERSONAS.BALANCED,
       heatmap: false,
       heatmapMode: 'combined',
+      ghost: true,
     };
-    return { ...defaults, ...read(SETTINGS_KEY, {}) };
+    const current = read(SETTINGS_KEY, null);
+    if (current) return { ...defaults, ...current };
+
+    const legacy = read('gomoku-settings-v22', {});
+    return { ...defaults, ...legacy };
   }
 
   function saveSettings(settings) {
     return write(SETTINGS_KEY, settings);
   }
 
+  function loadTrainingProgress() {
+    const progress = read(TRAINING_PROGRESS_KEY, {});
+    return progress && typeof progress === 'object' && !Array.isArray(progress) ? progress : {};
+  }
+
+  function saveTrainingProgress(progress) {
+    return write(TRAINING_PROGRESS_KEY, progress || {});
+  }
+
   G.Storage = Object.freeze({
     CURRENT_KEY,
     HISTORY_KEY,
     SETTINGS_KEY,
+    TRAINING_PROGRESS_KEY,
     saveCurrent,
     loadCurrent,
     clearCurrent,
@@ -80,5 +97,7 @@
     removeHistory,
     loadSettings,
     saveSettings,
+    loadTrainingProgress,
+    saveTrainingProgress,
   });
 })(window.Gomoku = window.Gomoku || {});
