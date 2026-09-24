@@ -9,6 +9,7 @@
       this.heatMode = doc.getElementById('heatmapMode');
       this.ghostToggle = doc.getElementById('ghostToggle');
       this.explain = doc.getElementById('aiExplain');
+      this.searchStatus = doc.getElementById('aiSearchStatus');
       this.candidateCompare = doc.getElementById('candidateCompare');
       this.candidateSide = doc.getElementById('candidateSide');
       this.profile = doc.getElementById('profileContent');
@@ -27,7 +28,7 @@
       this.shareNotice = doc.getElementById('shareNotice');
       this.shareNoticeText = doc.getElementById('shareNoticeText');
       this.shareNoticeClose = doc.getElementById('shareNoticeClose');
-      this.renderKeys = { settings: '', explanation: '', candidates: '' };
+      this.renderKeys = { settings: '', explanation: '', candidates: '', search: '' };
     }
 
     bind(handlers) {
@@ -87,6 +88,32 @@
         lookahead.textContent = insight.explanation.lookahead;
         this.explain.appendChild(lookahead);
       }
+    }
+
+    renderSearchStatus(progress) {
+      const key = progress
+        ? `${progress.mode || ''}|${progress.channel || ''}|${progress.active}|${progress.depth || 0}|${progress.nodes || 0}|${progress.elapsedMs || 0}|${progress.cacheHits || 0}|${progress.tacticalNodes || 0}|${progress.bestMove?.r ?? '-'},${progress.bestMove?.c ?? '-'}`
+        : 'empty';
+      if (key === this.renderKeys.search) return;
+      this.renderKeys.search = key;
+
+      if (!progress) {
+        this.searchStatus.classList.add('hidden');
+        this.searchStatus.textContent = '';
+        return;
+      }
+
+      const parts = [];
+      parts.push(progress.mode === 'worker' ? 'Worker AI' : '主线程 AI');
+      if (progress.depth) parts.push(`深度 ${progress.depth}`);
+      if (progress.nodes != null) parts.push(`${progress.nodes.toLocaleString()} 节点`);
+      if (progress.elapsedMs != null) parts.push(`${progress.elapsedMs} ms`);
+      if (progress.cacheHits) parts.push(`缓存命中 ${progress.cacheHits}`);
+      if (progress.tacticalNodes) parts.push(`战术节点 ${progress.tacticalNodes}`);
+      if (progress.bestMove?.r != null) parts.push(`当前推荐 ${G.History.coordinate(progress.bestMove)}`);
+
+      this.searchStatus.textContent = `${progress.active ? 'AI 搜索中 · ' : '最近搜索 · '}${parts.join(' · ')}`;
+      this.searchStatus.classList.remove('hidden');
     }
 
     renderCandidates(candidates, player) {
