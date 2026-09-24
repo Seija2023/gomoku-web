@@ -76,22 +76,22 @@
       this.whiteLabel.textContent = aiMode ? '电脑（白棋）' : '白棋';
     }
 
-    updateStatus(game, aiThinking, soundEnabled, reviewActive = false) {
+    updateStatus(game, aiThinking, soundEnabled, interactionLocked = false, statusOverride = null) {
       const blackCount = game.moves.filter(move => move.player === BLACK).length;
       const whiteCount = game.moves.length - blackCount;
       this.blackCount.textContent = String(blackCount);
       this.whiteCount.textContent = String(whiteCount);
       this.moveCount.textContent = String(game.moves.length);
-      this.undoBtn.disabled = game.moves.length === 0 || reviewActive;
-      this.restartBtn.disabled = reviewActive;
-      this.pvpModeBtn.disabled = reviewActive;
-      this.aiModeBtn.disabled = reviewActive;
+      this.undoBtn.disabled = game.moves.length === 0 || interactionLocked;
+      this.restartBtn.disabled = interactionLocked;
+      this.pvpModeBtn.disabled = interactionLocked;
+      this.aiModeBtn.disabled = interactionLocked;
 
       const stone = this.turnIndicator.querySelector('.stone');
       stone.className = `stone ${game.currentPlayer === BLACK ? 'black' : 'white'}`;
       this.thinkingBadge.classList.toggle('hidden', !aiThinking);
 
-      if (reviewActive) this.turnText.textContent = '复盘中';
+      if (statusOverride) this.turnText.textContent = statusOverride;
       else if (game.gameOver) this.turnText.textContent = '对局结束';
       else if (game.mode === MODES.AI) this.turnText.textContent = game.currentPlayer === BLACK ? '你 · 黑棋' : '电脑 · 白棋';
       else this.turnText.textContent = game.currentPlayer === BLACK ? '黑棋' : '白棋';
