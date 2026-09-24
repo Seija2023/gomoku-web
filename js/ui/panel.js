@@ -38,7 +38,7 @@
       this.pvpModeBtn.addEventListener('click', () => handlers.setMode(MODES.PVP));
       this.aiModeBtn.addEventListener('click', () => handlers.setMode(MODES.AI));
       this.resultUndoBtn.addEventListener('click', handlers.undo);
-      this.resultReviewBtn.addEventListener('click', handlers.startReview);
+      this.resultReviewBtn.addEventListener('click', () => handlers.startReview());
       this.resultRestartBtn.addEventListener('click', handlers.restart);
       this.resultCloseBtn.addEventListener('click', () => this.hideResult());
       this.resumeNoticeClose.addEventListener('click', () => this.resumeNotice.classList.add('hidden'));
