@@ -704,13 +704,25 @@
   variationView.bind({
     startCurrent: () => variationWorkflow.startCurrent(),
     resumeSaved: () => variationWorkflow.resumeSaved(),
-    select: id => variationController.select(id),
-    parent: () => variationController.parent(),
-    root: () => variationController.root(),
+    select: id => {
+      boardView.clearGhost();
+      return variationController.select(id);
+    },
+    parent: () => {
+      boardView.clearGhost();
+      return variationController.parent();
+    },
+    root: () => {
+      boardView.clearGhost();
+      return variationController.root();
+    },
     expand: () => variationController.expand(),
     rename: label => variationController.rename(label),
     toggleFavorite: () => variationController.toggleFavorite(),
-    removeCurrent: () => variationController.removeCurrent(),
+    removeCurrent: () => {
+      boardView.clearGhost();
+      return variationController.removeCurrent();
+    },
     exit: () => variationWorkflow.exit(),
   });
 
