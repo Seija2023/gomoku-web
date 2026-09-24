@@ -33,7 +33,7 @@
       this.analysis = analysisService;
     }
 
-    branch(board, moves, move, player, persona) {
+    branch(board, moves, move, player, persona, searchOptions = {}) {
       if (!G.Rules.isInside(board, move.r, move.c) || board[move.r][move.c] !== 0) return null;
 
       const base = scoreCandidate(board, move, player, persona);
@@ -74,15 +74,35 @@
       if (reply) line.push({ r: reply.r, c: reply.c, player: opponent, role: 'reply' });
       if (followUp) line.push({ r: followUp.r, c: followUp.c, player, role: 'follow' });
 
+      const deep = G.AISearch?.analyzeMove?.(
+        G.Position.cloneBoard(board),
+        moves,
+        move,
+        player,
+        persona,
+        searchOptions,
+      );
+      const deepLine = deep?.line?.length
+        ? deep.line.map((item, index) => ({
+            ...item,
+            role: index === 0 ? 'self' : (item.player === player ? 'follow' : 'reply'),
+          }))
+        : line;
+
       return {
         ...base,
         score: Math.round(base.score),
-        adjustedScore: Math.round(adjustedScore),
-        reply: reply ? { r: reply.r, c: reply.c, score: Math.round(reply.score) } : null,
+        adjustedScore: Math.round(deep?.score ?? adjustedScore),
+        reply: deepLine[1]
+          ? { r: deepLine[1].r, c: deepLine[1].c, score: Math.round(replyScore) }
+          : (reply ? { r: reply.r, c: reply.c, score: Math.round(reply.score) } : null),
         replyScore: Math.round(replyScore),
-        followUp: followUp ? { r: followUp.r, c: followUp.c, score: Math.round(followUp.score) } : null,
+        followUp: deepLine[2]
+          ? { r: deepLine[2].r, c: deepLine[2].c, score: Math.round(followUpScore) }
+          : (followUp ? { r: followUp.r, c: followUp.c, score: Math.round(followUp.score) } : null),
         followUpScore: Math.round(followUpScore),
-        line,
+        line: deepLine,
+        search: deep?.search || null,
         outcome: 'open',
       };
     }
@@ -128,18 +148,38 @@
       return reasons.slice(0, 3);
     }
 
-    compare({ board, moves = [], player, persona, userMove }) {
+    compare({ board, moves = [], player, persona, userMove, searchOptions = {} }) {
       if (!board || ![BLACK, WHITE].includes(player) || !userMove) return null;
       const inspection = G.Position.inspectBoard(board);
       if (!inspection.ok || inspection.terminal) return null;
       if (!G.Rules.isInside(board, userMove.r, userMove.c) || board[userMove.r][userMove.c] !== 0) return null;
 
-      const ranked = this.analysis.ranked(board, moves, player, persona);
-      const recommendedMove = ranked[0] ? { r: ranked[0].r, c: ranked[0].c } : null;
+      const totalBudget = searchOptions.timeBudgetMs || G.Config.AI_BUDGET_MS.analysis;
+      const maxDepth = searchOptions.maxDepth || G.Config.AI_MAX_DEPTH.analysis;
+      const recommendation = this.analysis.chooseMove(
+        board,
+        moves,
+        G.Config.AI_DIFFICULTIES.HARD,
+        player,
+        persona,
+        Math.random,
+        {
+          ...searchOptions,
+          analysis: true,
+          timeBudgetMs: Math.max(100, Math.round(totalBudget * 0.38)),
+          maxDepth,
+        },
+      );
+      const recommendedMove = recommendation?.move;
       if (!recommendedMove) return null;
 
-      const userLine = this.branch(board, moves, userMove, player, persona);
-      const recommendedLine = this.branch(board, moves, recommendedMove, player, persona);
+      const branchOptions = {
+        ...searchOptions,
+        timeBudgetMs: Math.max(80, Math.round(totalBudget * 0.28)),
+        maxDepth: Math.max(3, maxDepth - 1),
+      };
+      const userLine = this.branch(board, moves, userMove, player, persona, branchOptions);
+      const recommendedLine = this.branch(board, moves, recommendedMove, player, persona, branchOptions);
       if (!userLine || !recommendedLine) return null;
 
       const scoreDelta = recommendedLine.adjustedScore - userLine.adjustedScore;
@@ -150,6 +190,11 @@
         scoreDelta,
         reasons: this.explain(userLine, recommendedLine),
         sameMove: userLine.r === recommendedLine.r && userLine.c === recommendedLine.c,
+        search: {
+          recommendation: recommendation.search || null,
+          user: userLine.search || null,
+          recommended: recommendedLine.search || null,
+        },
       };
     }
   }
