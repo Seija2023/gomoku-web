@@ -62,7 +62,7 @@
             const piece = document.createElement('span');
             piece.className = `piece ${value === BLACK ? 'black' : 'white'}`;
             if (last && last.r === r && last.c === c) piece.classList.add('last');
-            if (!reviewMode && winningKeys.has(`${r},${c}`)) piece.classList.add('winner');
+            if (winningKeys.has(`${r},${c}`)) piece.classList.add('winner');
             cell.appendChild(piece);
           }
           this.element.appendChild(cell);
