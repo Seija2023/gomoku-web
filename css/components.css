@@ -1150,3 +1150,155 @@ button.primary {
 .mini-stats {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+
+.workspace-tab {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: #625a50;
+  background: transparent;
+  font-weight: 800;
+}
+
+.workspace-tab span {
+  font-size: 13px;
+}
+
+.workspace-tab small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.workspace-tab.active {
+  color: #fff;
+  background: #2e2b27;
+  box-shadow: 0 5px 14px rgba(40,36,31,.16);
+}
+
+.workspace-tab.active small {
+  color: rgba(255,255,255,.68);
+}
+
+.workspace-tab:disabled:not(.active) {
+  opacity: .34;
+  cursor: not-allowed;
+}
+
+.workspace-section {
+  display: none;
+}
+
+.workspace-section.workspace-visible {
+  display: block;
+}
+
+.workspace-panel .workspace-section + .workspace-section.workspace-visible {
+  border-top: 1px solid rgba(55,39,21,.1);
+  margin-top: 20px;
+  padding-top: 20px;
+}
+
+.workspace-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.workspace-section-head h2 {
+  margin: 2px 0 0;
+}
+
+.workspace-section-head > span {
+  max-width: 118px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.workspace-kicker {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.workspace-disclosure {
+  margin-top: 12px;
+  border-radius: 12px;
+  background: rgba(143,101,53,.045);
+}
+
+.workspace-disclosure > summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 9px 10px;
+  color: #4d4740;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workspace-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.workspace-disclosure > summary::after {
+  content: '＋';
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.workspace-disclosure[open] > summary::after {
+  content: '−';
+}
+
+.workspace-disclosure > summary small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.workspace-disclosure[open] {
+  padding-bottom: 8px;
+}
+
+.workspace-disclosure[open] > :not(summary) {
+  margin-left: 9px;
+  margin-right: 9px;
+}
+
+.workspace-panel .candidate-compare {
+  grid-template-columns: 1fr;
+}
+
+.workspace-panel .candidate-card {
+  padding: 11px 12px;
+}
+
+.workspace-panel .search-inspector {
+  padding: 0;
+}
+
+.workspace-panel .search-inspector[open] {
+  padding-bottom: 10px;
+}
+
+body[data-workspace="game"] .board-wrap {
+  box-shadow: 0 20px 55px rgba(48,35,20,.17);
+}
