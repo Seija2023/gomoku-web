@@ -26,12 +26,14 @@
       this.cells = Array(SIZE * SIZE);
       this.renderedValues = new Uint8Array(SIZE * SIZE);
       this.heatMarkers = new Map();
+      this.metrics = { initializations: 0, renders: 0, cellValueUpdates: 0, heatCreates: 0, heatRemoves: 0 };
 
       this.initializeBoard();
       this.bindDelegatedEvents();
     }
 
     initializeBoard() {
+      this.metrics.initializations += 1;
       this.element.innerHTML = '';
 
       for (let i = 0; i < SIZE; i += 1) {
@@ -228,6 +230,7 @@
           setBoardPosition(marker, point.r, point.c);
           this.heatMarkers.set(key, marker);
           this.heatLayer.appendChild(marker);
+          this.metrics.heatCreates += 1;
         }
         marker.className = `heat-point heat-${point.level}`;
         marker.title = point.title || '局势分析';
@@ -237,6 +240,7 @@
         if (nextKeys.has(key)) continue;
         marker.remove();
         this.heatMarkers.delete(key);
+        this.metrics.heatRemoves += 1;
       }
     }
 
@@ -260,6 +264,7 @@
     }
 
     render(game, options = {}) {
+      this.metrics.renders += 1;
       const {
         locked = false,
         reviewIndex = null,
@@ -290,6 +295,7 @@
 
           if (this.renderedValues[index] !== value) {
             this.renderedValues[index] = value;
+            this.metrics.cellValueUpdates += 1;
             this.updatePiece(cell, value, key === lastKey, winningKeys.has(key));
           } else if (value) {
             const piece = cell.firstElementChild;
@@ -302,6 +308,10 @@
       }
 
       this.updateHeatmap(heatmap, board);
+    }
+
+    stats() {
+      return { ...this.metrics, heatMarkers: this.heatMarkers.size };
     }
   }
 
