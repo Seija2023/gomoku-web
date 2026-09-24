@@ -8,13 +8,16 @@
 https://seija2023.github.io/gomoku-web/
 ```
 
-当前工程版本：**v2.3.2（调度与扩展优化版）**。
+当前工程版本：**v2.3.3（控制器解耦与自动回归版）**。
 
-## v2.3.2 重点
+## v2.3.3 重点
 
-这一版继续保持 **主要界面和功能不变**，重点减少无意义刷新，并让后续控制器拆分、异步 AI 和新模式更容易接入。
+这一版继续保持 **主要界面和功能不变**，重点完成 Controller 解耦、AI Client 抽象和短浏览器回归自动化。
 
-- 增加按区域 Dirty Refresh：棋盘、状态、分析、复盘、覆盖层和设置可独立刷新
+- `main.js` 从约 970 行缩减到约 590 行，游戏、复盘、分支、训练和分享逻辑拆入独立 Controller
+- 新增 `MainThreadAIClient`，Controller 不再直接依赖具体 AI 实现，为 Web Worker 切换预留稳定接口
+- CI 新增依赖零第三方包的短 Chrome Smoke Test，自动验证棋盘、AI回应和复盘不滚屏
+- 保留按区域 Dirty Refresh：棋盘、状态、分析、复盘、覆盖层和设置可独立刷新
 - 自动复盘不再每一步重建完整棋谱、关键点和分析 DOM
 - 历史棋局派生数据加入缓存，训练进度变化只刷新训练统计
 - 新增 RequestGate，旧 AI 请求会自动失效，为未来 Worker/异步 AI 做准备
@@ -47,6 +50,7 @@ https://seija2023.github.io/gomoku-web/
 ```bash
 npm test
 npm run build
+npm run smoke
 ```
 
 所有核心 AI、分析、训练和分享逻辑仍在浏览器本地运行。
