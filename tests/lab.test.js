@@ -5,6 +5,7 @@ globalThis.window = globalThis;
 
 await import('../js/config.js');
 await import('../js/core/rules.js');
+await import('../js/game/position.js');
 await import('../js/ai/evaluator.js');
 await import('../js/ai/search.js');
 await import('../js/game/history.js');
@@ -52,4 +53,25 @@ test('分享棋局编码可以无损还原', () => {
   assert.equal(decoded.index, 2);
   assert.deepEqual(decoded.moves, moves);
   assert.equal(ShareCodec.makeHash(decoded).startsWith('#challenge='), true);
+});
+
+test('分享解码拒绝重复落点和错误轮次', () => {
+  const bad = ShareCodec.encode({
+    kind: 'game',
+    moves: [
+      { r: 7, c: 7, player: Config.BLACK },
+      { r: 7, c: 7, player: Config.WHITE },
+    ],
+    winner: 0,
+  });
+  assert.equal(ShareCodec.decode(bad), null);
+
+  const badTurn = ShareCodec.encode({
+    kind: 'game',
+    moves: [
+      { r: 7, c: 7, player: Config.WHITE },
+    ],
+    winner: 0,
+  });
+  assert.equal(ShareCodec.decode(badTurn), null);
 });

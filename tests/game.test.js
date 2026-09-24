@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 globalThis.window = globalThis;
 await import('../js/config.js');
 await import('../js/core/rules.js');
+await import('../js/game/position.js');
 await import('../js/game/game.js');
 
 const { Game, Config } = globalThis.Gomoku;
@@ -73,4 +74,21 @@ test('未完成棋局快照可恢复', () => {
   assert.equal(restored.restore(snapshot), true);
   assert.deepEqual(restored.moves, snapshot.moves);
   assert.equal(restored.currentPlayer, snapshot.currentPlayer);
+});
+
+test('恢复棋局会拒绝错误轮次和重复落点', () => {
+  const restored = new Game.Game();
+  assert.equal(restored.restore({
+    mode: Config.MODES.PVP,
+    moves: [{ r: 7, c: 7, player: Config.WHITE }],
+    currentPlayer: Config.BLACK,
+  }), false);
+  assert.equal(restored.restore({
+    mode: Config.MODES.PVP,
+    moves: [
+      { r: 7, c: 7, player: Config.BLACK },
+      { r: 7, c: 7, player: Config.WHITE },
+    ],
+    currentPlayer: Config.BLACK,
+  }), false);
 });

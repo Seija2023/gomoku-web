@@ -90,14 +90,18 @@
     restore(snapshot) {
       if (!snapshot || !Array.isArray(snapshot.moves)) return false;
       const mode = snapshot.mode === MODES.AI ? MODES.AI : MODES.PVP;
+      const validation = G.Position?.validateMoves?.(snapshot.moves);
+      if (validation && !validation.ok) {
+        this.reset(mode);
+        return false;
+      }
       this.reset(mode);
 
       for (const move of snapshot.moves) {
-        if (!isInside(this.board, move.r, move.c) || this.board[move.r][move.c] !== 0) {
+        if (!isInside(this.board, move.r, move.c) || this.board[move.r][move.c] !== 0 || move.player !== this.currentPlayer) {
           this.reset(mode);
           return false;
         }
-        this.currentPlayer = move.player;
         const result = this.play(move.r, move.c);
         if (!result.ok) {
           this.reset(mode);
