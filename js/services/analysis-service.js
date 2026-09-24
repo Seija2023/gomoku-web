@@ -97,7 +97,7 @@
       return this.cached(
         this.resultCache,
         key,
-        () => G.AISearch.previewLine(board, moves, r, c, player, persona),
+        () => G.AISearch.previewLine(board, moves, r, c, player, persona, 7),
         'result',
       );
     }
