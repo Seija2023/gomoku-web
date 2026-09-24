@@ -29,6 +29,7 @@ test('反事实分析会识别错过的直接胜手且不修改原棋盘', () =>
     player: G.Config.BLACK,
     persona: G.Config.AI_PERSONAS.BALANCED,
     userMove: { r: 0, c: 0 },
+    searchOptions: { timeBudgetMs: 100, maxDepth: 3, candidateLimit: 6 },
   });
 
   assert.ok(result);
@@ -51,6 +52,7 @@ test('反事实分析会识别必须封堵的对手五连', () => {
     player: G.Config.BLACK,
     persona: G.Config.AI_PERSONAS.BALANCED,
     userMove: { r: 0, c: 0 },
+    searchOptions: { timeBudgetMs: 100, maxDepth: 3, candidateLimit: 6 },
   });
 
   assert.ok(result);
@@ -65,12 +67,15 @@ test('选择本身就是推荐手时返回一致结论', () => {
   board[7][8] = G.Config.WHITE;
   const analysis = new G.Services.AnalysisService();
   const service = new G.Services.CounterfactualService(analysis);
-  const recommended = analysis.ranked(
+  const recommended = analysis.chooseMove(
     board,
     [],
+    G.Config.AI_DIFFICULTIES.HARD,
     G.Config.BLACK,
     G.Config.AI_PERSONAS.BALANCED,
-  )[0];
+    Math.random,
+    { timeBudgetMs: 80, maxDepth: 3, candidateLimit: 6 },
+  ).move;
 
   const result = service.compare({
     board,
@@ -78,6 +83,7 @@ test('选择本身就是推荐手时返回一致结论', () => {
     player: G.Config.BLACK,
     persona: G.Config.AI_PERSONAS.BALANCED,
     userMove: { r: recommended.r, c: recommended.c },
+    searchOptions: { timeBudgetMs: 100, maxDepth: 3, candidateLimit: 6 },
   });
 
   assert.equal(result.sameMove, true);
