@@ -38,14 +38,15 @@
       const parsed = JSON.parse(fromBase64Url(value));
       if (parsed?.v !== 1 || !Array.isArray(parsed.m)) return null;
       const moves = parsed.m.map(expandMove);
-      for (const move of moves) {
-        if (!Number.isInteger(move.r) || !Number.isInteger(move.c) || ![G.Config.BLACK, G.Config.WHITE].includes(move.player)) return null;
-        if (move.r < 0 || move.c < 0 || move.r >= G.Config.SIZE || move.c >= G.Config.SIZE) return null;
-      }
+      const validation = G.Position.validateMoves(moves);
+      if (!validation.ok) return null;
+      const index = Number.isInteger(parsed.i) ? parsed.i : moves.length;
+      if (index < 0 || index > moves.length) return null;
+      if (parsed.k === 'challenge' && validation.terminalAt >= 0 && index > validation.terminalAt) return null;
       return {
         kind: parsed.k === 'challenge' ? 'challenge' : 'game',
         moves,
-        index: Number.isInteger(parsed.i) ? parsed.i : moves.length,
+        index,
         winner: parsed.w || 0,
         mode: parsed.mode === G.Config.MODES.AI ? G.Config.MODES.AI : G.Config.MODES.PVP,
       };
