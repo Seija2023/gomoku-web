@@ -228,3 +228,5 @@
 
 .ghost-reply { opacity: .44; }
 .ghost-follow { opacity: .32; }
+
+.board.ghost-enabled .cell { touch-action: none; }
