@@ -19,7 +19,7 @@
 
 .board-wrap {
   border-radius: 24px;
-  padding: 34px;
+  padding: 42px;
   background: linear-gradient(145deg, #e1b770, #c99043);
   box-shadow: var(--shadow);
   border: 1px solid rgba(94, 58, 20, .25);
@@ -56,12 +56,12 @@
 
 .coord-top {
   left: var(--x);
-  top: -22px;
+  top: -34px;
   transform: translateX(-50%);
 }
 
 .coord-left {
-  left: -22px;
+  left: -34px;
   top: var(--y);
   transform: translateY(-50%);
 }
