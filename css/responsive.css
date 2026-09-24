@@ -170,3 +170,33 @@
     grid-template-columns: 22px minmax(45px, 1fr) 34px 52px;
   }
 }
+
+
+@media (max-width: 640px) {
+  .training-card {
+    grid-template-columns: 1fr;
+  }
+
+  .training-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .training-actions button {
+    min-height: 44px;
+  }
+
+  .training-actions #trainingVariationBtn {
+    grid-column: 1 / -1;
+  }
+
+  .mistake-book-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mistake-book-card button {
+    width: 100%;
+    min-height: 42px;
+  }
+}
