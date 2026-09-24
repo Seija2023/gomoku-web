@@ -21,6 +21,10 @@
         state?.wrong || 0,
         state?.dueAt || 0,
         state?.mastered ? 1 : 0,
+        state?.attempts || 0,
+        state?.best || 0,
+        state?.good || 0,
+        state?.lastGrade || '',
       ].join(':')
     ).join('|');
   }
@@ -40,10 +44,12 @@
       }
 
       this.metrics.historyMisses += 1;
-      const puzzles = G.Puzzles.generate(records);
+      const mistakes = G.MistakeMiner.mine(records);
+      const puzzles = G.Puzzles.generate(records, G.Config.MAX_TRAINING_PUZZLES, mistakes);
       const value = Object.freeze({
+        mistakes,
         puzzles,
-        profile: G.Profile.compute(records),
+        profile: G.Profile.compute(records, mistakes),
         openings: G.Openings.build(records),
       });
       this.historyCache = { key, value };
@@ -61,8 +67,10 @@
 
       this.metrics.trainingMisses += 1;
       const trainingStats = G.TrainingScheduler.stats(history.puzzles, progress);
-      this.trainingCache = { key, value: trainingStats };
-      return { ...history, trainingStats };
+      const adaptive = G.AdaptiveTraining.summary(history.puzzles, progress, history.mistakes);
+      const trainingValue = Object.freeze({ trainingStats, adaptive });
+      this.trainingCache = { key, value: trainingValue };
+      return { ...history, ...trainingValue };
     }
 
     invalidateHistory() {
