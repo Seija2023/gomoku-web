@@ -56,3 +56,31 @@ test('AIClient cancellation invalidates an older pending request', async () => {
   assert.equal(calls, 0);
   assert.equal(client.stats().staleResults, 1);
 });
+
+
+test('AIClient exposes asynchronous counterfactual comparison through the same boundary', async () => {
+  G.Services.CounterfactualService = class {
+    compare(context) {
+      return {
+        userLine: { ...context.userMove, adjustedScore: 10 },
+        recommendedLine: { r: 7, c: 7, adjustedScore: 20 },
+        scoreDelta: 10,
+      };
+    }
+  };
+
+  const gate = new G.Services.RequestGate();
+  const client = new G.Services.MainThreadAIClient({}, gate);
+  const response = await client.compareMove({
+    board: [],
+    moves: [],
+    player: 1,
+    persona: 'balanced',
+    userMove: { r: 6, c: 6 },
+  });
+
+  assert.equal(response.stale, false);
+  assert.equal(response.result.scoreDelta, 10);
+  assert.equal(client.stats().compareRequests, 1);
+  assert.equal(client.stats().requests.counterfactual, 1);
+});
