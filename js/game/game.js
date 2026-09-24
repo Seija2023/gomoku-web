@@ -16,6 +16,28 @@
       this.gameOver = false;
       this.winner = 0;
       this.winningLine = null;
+      this.customPosition = false;
+      this.initialBoard = null;
+      this.initialPlayer = BLACK;
+    }
+
+    loadPosition(position, mode = this.mode) {
+      const parsed = G.Position?.fromBoard?.(position?.board, position?.currentPlayer);
+      if (!parsed) return false;
+      const inspection = G.Position.inspectBoard(parsed.board);
+      if (!inspection.ok || inspection.terminal) return false;
+
+      this.mode = mode === MODES.AI ? MODES.AI : MODES.PVP;
+      this.board = G.Position.cloneBoard(parsed.board);
+      this.currentPlayer = parsed.currentPlayer;
+      this.moves = [];
+      this.gameOver = false;
+      this.winner = 0;
+      this.winningLine = null;
+      this.customPosition = true;
+      this.initialBoard = G.Position.cloneBoard(parsed.board);
+      this.initialPlayer = parsed.currentPlayer;
+      return true;
     }
 
     setMode(mode) {
@@ -54,6 +76,23 @@
       this.winner = 0;
       this.winningLine = null;
 
+      if (this.customPosition) {
+        const last = this.moves[this.moves.length - 1];
+        let steps = 1;
+        if (
+          this.mode === MODES.AI
+          && last?.player === WHITE
+          && this.moves.length >= 2
+          && this.moves[this.moves.length - 2]?.player === BLACK
+        ) steps = 2;
+        for (let i = 0; i < steps; i += 1) this.removeLastMove();
+        const tail = this.moves[this.moves.length - 1];
+        this.currentPlayer = tail
+          ? (tail.player === BLACK ? WHITE : BLACK)
+          : this.initialPlayer;
+        return steps;
+      }
+
       if (this.mode === MODES.AI) {
         const last = this.moves[this.moves.length - 1];
         let steps;
@@ -84,12 +123,43 @@
         moves: this.moves.map(move => ({ ...move })),
         gameOver: this.gameOver,
         winner: this.winner,
+        customPosition: this.customPosition,
+        initialBoard: this.customPosition ? G.Position.cloneBoard(this.initialBoard) : null,
+        initialPlayer: this.customPosition ? this.initialPlayer : null,
       };
     }
 
     restore(snapshot) {
       if (!snapshot || !Array.isArray(snapshot.moves)) return false;
       const mode = snapshot.mode === MODES.AI ? MODES.AI : MODES.PVP;
+
+      if (snapshot.customPosition && snapshot.initialBoard) {
+        if (!this.loadPosition({
+          board: snapshot.initialBoard,
+          currentPlayer: snapshot.initialPlayer,
+        }, mode)) {
+          this.reset(mode);
+          return false;
+        }
+
+        for (const move of snapshot.moves) {
+          if (
+            !isInside(this.board, move.r, move.c)
+            || this.board[move.r][move.c] !== 0
+            || move.player !== this.currentPlayer
+          ) {
+            this.reset(mode);
+            return false;
+          }
+          const result = this.play(move.r, move.c);
+          if (!result.ok) {
+            this.reset(mode);
+            return false;
+          }
+        }
+        return true;
+      }
+
       const validation = G.Position?.validateMoves?.(snapshot.moves);
       if (validation && !validation.ok) {
         this.reset(mode);
