@@ -1,0 +1,142 @@
+.thinking-badge {
+  margin-left: auto;
+  padding: 3px 7px;
+  font-size: 11px;
+  border-radius: 999px;
+  color: #6e5739;
+  background: rgba(215, 166, 93, .18);
+}
+
+.panel {
+  padding: 22px;
+  border-radius: 22px;
+  background: rgba(255, 250, 242, .88);
+  border: 1px solid rgba(55, 39, 21, .12);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.panel-section + .panel-section {
+  border-top: 1px solid rgba(55,39,21,.1);
+  margin-top: 22px;
+  padding-top: 22px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 5px;
+  border-radius: 14px;
+  background: rgba(143, 101, 53, .08);
+}
+
+.mode-btn {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #5d564d;
+  background: transparent;
+  font-weight: 700;
+}
+
+.mode-btn.active {
+  color: #fff;
+  background: #2e2b27;
+  box-shadow: 0 4px 12px rgba(40, 36, 31, .16);
+}
+
+.helper-text {
+  margin: 9px 2px 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.stats {
+  display: grid;
+  gap: 10px;
+}
+
+.stats > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(143, 101, 53, .07);
+}
+
+.stats span { color: var(--muted); }
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.actions button,
+.modal button {
+  min-height: 44px;
+  padding: 11px 15px;
+  border-radius: 12px;
+  background: #e6ded3;
+  color: #2c2925;
+  font-weight: 700;
+}
+
+.actions button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+button.primary {
+  color: white;
+  background: #2e2b27;
+}
+
+.actions button:not(:disabled):hover,
+.modal button:hover,
+.mode-btn:hover {
+  filter: brightness(.97);
+}
+
+.rules p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 15, .52);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 10;
+}
+
+.modal-card {
+  width: min(410px, 100%);
+  padding: 30px;
+  text-align: center;
+  background: #fffaf2;
+  border-radius: 24px;
+  box-shadow: 0 25px 80px rgba(0,0,0,.25);
+}
+
+.modal-card h2 {
+  margin: 4px 0 8px;
+  font-size: 30px;
+}
+
+.modal-card p:not(.eyebrow) {
+  color: var(--muted);
+  margin: 0 0 22px;
+}
