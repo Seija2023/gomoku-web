@@ -647,7 +647,7 @@
     insights.showShareNotice('已进入分享挑战：请从当前局面继续。');
   } else {
     const saved = G.Storage.loadCurrent();
-    if (saved && game.restore(saved) && game.moves.length && !game.gameOver) {
+    if (saved && game.restore(saved) && (game.moves.length || game.customPosition) && !game.gameOver) {
       panel.showResumeNotice();
       refresh();
       if (game.mode === MODES.AI && game.currentPlayer === WHITE) {
