@@ -8,9 +8,10 @@ globalThis.localStorage = {
   setItem: (key, value) => data.set(key, String(value)),
   removeItem: key => data.delete(key),
 };
+await import('../js/config.js');
 await import('../js/storage/storage.js');
 
-const { Storage } = globalThis.Gomoku;
+const { Storage, Config } = globalThis.Gomoku;
 
 test('未完成棋局可以保存与读取', () => {
   const snapshot = { moves: [{ r: 7, c: 7, player: 1 }], gameOver: false };
@@ -30,4 +31,10 @@ test('历史记录可写入和删除', () => {
   assert.equal(Storage.listHistory()[0].id, 'x');
   Storage.removeHistory('x');
   assert.equal(Storage.listHistory().some(item => item.id === 'x'), false);
+});
+
+test('智能分析设置可以持久化', () => {
+  const settings = { difficulty: Config.AI_DIFFICULTIES.HARD, heatmap: true, heatmapMode: 'black' };
+  assert.equal(Storage.saveSettings(settings), true);
+  assert.deepEqual(Storage.loadSettings(), settings);
 });
