@@ -459,3 +459,136 @@ button.primary {
 
 .analysis-mistake { color: #8e3d2f; }
 .analysis-win { font-weight: 800; }
+
+.control-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.control-grid label { min-width: 0; }
+
+.ghost-help { margin-top: 10px; }
+
+.candidate-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(55,39,21,.1);
+}
+
+.candidate-heading,
+.advantage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.candidate-compare {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.candidate-card {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(143,101,53,.07);
+  border: 1px solid rgba(55,39,21,.08);
+}
+
+.candidate-title,
+.candidate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.candidate-title {
+  margin-bottom: 7px;
+  color: #2e2b27;
+}
+
+.candidate-title span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.candidate-row {
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.candidate-row span { color: var(--muted); }
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.mini-stats > div {
+  display: grid;
+  gap: 3px;
+  padding: 8px 6px;
+  text-align: center;
+  border-radius: 10px;
+  background: rgba(143,101,53,.06);
+}
+
+.mini-stats span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.mini-stats strong { font-size: 14px; }
+
+.opening-library {
+  display: grid;
+  gap: 8px;
+}
+
+.opening-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border-radius: 11px;
+  background: rgba(143,101,53,.06);
+}
+
+.opening-card strong {
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.opening-card span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.advantage-card {
+  margin-top: 18px;
+  padding: 14px 15px 10px;
+  border-radius: 14px;
+  background: rgba(143,101,53,.055);
+}
+
+.advantage-header span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.advantage-chart {
+  display: block;
+  width: 100%;
+  height: 132px;
+  margin-top: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
