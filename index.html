@@ -29,9 +29,60 @@
       </div>
     </header>
 
+    <div id="resumeNotice" class="resume-notice hidden" role="status">
+      <span>已恢复上次未完成的对局。</span>
+      <button id="resumeNoticeClose" type="button" aria-label="关闭提示">×</button>
+    </div>
+
     <section class="game-layout">
-      <div class="board-wrap">
-        <div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div>
+      <div class="board-column">
+        <div class="board-wrap">
+          <div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div>
+        </div>
+
+        <section id="resultCard" class="result-card hidden" aria-live="polite">
+          <div class="result-copy">
+            <p class="eyebrow">GAME OVER</p>
+            <h2 id="resultTitle">黑棋获胜</h2>
+            <p id="resultText">第 0 手完成五子连线。</p>
+          </div>
+          <div class="result-actions">
+            <button id="resultUndoBtn" type="button">悔棋继续</button>
+            <button id="resultReviewBtn" type="button">开始复盘</button>
+            <button id="resultRestartBtn" class="primary" type="button">再来一局</button>
+            <button id="resultCloseBtn" type="button">收起结果</button>
+          </div>
+        </section>
+
+        <section id="reviewCard" class="review-card hidden">
+          <div class="review-header">
+            <div>
+              <p class="eyebrow">REVIEW</p>
+              <h2>对局复盘</h2>
+            </div>
+            <button id="reviewExitBtn" type="button">退出复盘</button>
+          </div>
+          <div class="review-toolbar">
+            <strong id="reviewPosition">第 0 / 0 手</strong>
+            <div class="review-buttons">
+              <button id="reviewStartBtn" type="button">开局</button>
+              <button id="reviewPrevBtn" type="button">上一步</button>
+              <button id="reviewPlayBtn" type="button">自动播放</button>
+              <button id="reviewNextBtn" type="button">下一步</button>
+              <button id="reviewEndBtn" type="button">终局</button>
+            </div>
+          </div>
+          <div class="review-grid">
+            <div>
+              <h3>对局分析</h3>
+              <div id="analysisContent" class="analysis-content"></div>
+            </div>
+            <div>
+              <h3>棋谱</h3>
+              <div id="moveList" class="move-list"></div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <aside class="panel">
@@ -62,6 +113,13 @@
           </div>
         </div>
 
+        <div class="panel-section">
+          <h2>历史对局</h2>
+          <div id="historyList" class="history-list">
+            <p class="helper-text">完成对局后会在这里保存最近 20 局。</p>
+          </div>
+        </div>
+
         <div class="panel-section rules">
           <h2>规则</h2>
           <p>黑棋先手。双方轮流落子，横、竖或斜线方向率先连续形成五枚同色棋子的一方获胜。当前版本采用基础自由五子棋规则，不含禁手。</p>
@@ -70,22 +128,17 @@
     </section>
   </main>
 
-  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
-    <div class="modal-card">
-      <p class="eyebrow">GAME OVER</p>
-      <h2 id="resultTitle">黑棋获胜</h2>
-      <p id="resultText">恭喜完成五子连线。</p>
-      <button id="playAgainBtn" class="primary" type="button">再来一局</button>
-    </div>
-  </div>
-
   <script src="js/config.js" defer></script>
   <script src="js/core/rules.js" defer></script>
   <script src="js/ai/evaluator.js" defer></script>
   <script src="js/game/game.js" defer></script>
+  <script src="js/game/history.js" defer></script>
+  <script src="js/storage/storage.js" defer></script>
+  <script src="js/analysis/analyzer.js" defer></script>
   <script src="js/audio/audio.js" defer></script>
   <script src="js/ui/board.js" defer></script>
   <script src="js/ui/panel.js" defer></script>
+  <script src="js/ui/review.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>
