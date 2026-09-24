@@ -8,9 +8,29 @@
 https://seija2023.github.io/gomoku-web/
 ```
 
-当前工程版本：**v2.7.0（Adaptive Training）**。
+当前工程版本：**v2.8.0（Workspace & UX 2.0）**。
 
-## v2.7.0 重点
+## v2.8.0 重点
+
+这一版暂停继续堆大型功能，集中解决 v2.4～v2.7 连续扩展后出现的界面密度和应用编排复杂度问题。核心 AI、Variation Tree、Adaptive Training 与存储模型保持兼容。
+
+- 新增统一 WorkspaceManager：GAME / REVIEW / BRANCH / TRAINING / POSITION_EDITOR / VARIATION 不再由 main.js 到处检查多个 state.active
+- 主界面收敛为四个工作区：对局 / 分析 / 训练 / 实验室
+- 特殊模式会自动切到对应工作区，并临时锁定其它工作区；退出后恢复用户原来的工作区
+- 工作区选择写入本地设置，刷新页面后继续保持
+- 新增 RenderCoordinator，集中负责当前展示局面、交互锁定、分析玩家、Ghost Preview 和区域刷新
+- 新增 SessionWorkflow，统一处理重开、模式切换、进入/退出复盘、挑战和 Position Editor
+- main.js 从约 772 行压缩到约 444 行，直接 state.active 判断从 31 次降为 0
+- AI 分析中心保留推荐、Candidate A/B/C、Ghost Line、Heatmap 和解释；Search Inspector 改为默认折叠的高级详情
+- 自适应训练默认突出今日训练与统计，近期弱点/错题本、玩家画像改为渐进展开
+- 开局库、历史对局和规则改为按需展开，默认界面不再一次展示全部信息
+- PC 使用顶部四工作区导航；手机使用固定底部导航，核心触控目标保持至少 44px
+- Candidate A/B/C 在桌面侧栏改为纵向卡片，减少窄列挤压；手机继续横向滑动
+- 新增 Boot Guard：经典脚本顺序被破坏时，会在启动阶段直接报告缺失模块，而不是在运行中随机 undefined
+- 保留现有 classic-script + Worker + Standalone Blob Worker 架构，暂不进行高风险的全面 ESM 重写
+- Chrome Smoke 按真实 UI 路径切换工作区，并验证工作区恢复、刷新持久化、特殊模式锁定和 390px 手机底部导航
+
+## v2.7.0 Adaptive Training
 
 这一版把历史棋局、Local AI 2.0、Counterfactual 和 Variation Tree 串成真正的个人自适应训练系统，仍然完全本地运行。
 
