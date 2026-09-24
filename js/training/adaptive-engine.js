@@ -85,7 +85,9 @@
 
   function summary(puzzles, progress, mistakes = []) {
     const categories = categoryStats(puzzles, progress, mistakes);
-    const trainableMistakes = (mistakes || []).filter(item => item.trainable);
+    const trainableMistakes = (mistakes || [])
+      .filter(item => item.trainable)
+      .sort((a, b) => (b.sourceFinishedAt || '').localeCompare(a.sourceFinishedAt || ''));
     const totalAttempts = Object.values(progress || {}).reduce((sum, item) => sum + (item.attempts || item.correct + item.wrong || 0), 0);
     const best = Object.values(progress || {}).reduce((sum, item) => sum + (item.best || 0), 0);
     const good = Object.values(progress || {}).reduce((sum, item) => sum + (item.good || 0), 0);
