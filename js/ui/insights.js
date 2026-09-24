@@ -403,7 +403,7 @@
         : `训练 ${state.index + 1}/${state.puzzles.length} · ${puzzle.prompt}`;
       this.trainingMeta.textContent = `${source} · ${taxonomy.label} · 原对局第 ${puzzle.moveIndex + 1} 手${confidence}`;
       this.trainingFeedback.textContent = state.feedback || '';
-      this.trainingFeedback.dataset.grade = state.result?.grade || '';
+      this.trainingFeedback.dataset.grade = state.sessionDone ? '' : (state.result?.grade || '');
       this.trainingDetail.textContent = state.result?.explanation || (
         puzzle.actual
           ? `原实战：${G.History.coordinate(puzzle.actual)} · 推荐：${G.History.coordinate(puzzle.expected)}`
