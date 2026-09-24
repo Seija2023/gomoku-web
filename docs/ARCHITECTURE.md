@@ -1,61 +1,54 @@
 # 工程架构说明
 
-## 目标
+## 版本目标
 
-v2.0.0 完成模块化重构；v2.1.0 在不破坏分层的前提下加入终局、复盘、分析和持久化能力。
+- v2.0.0：模块化重构
+- v2.1.0：终局、复盘、历史和持久化
+- v2.2.0：本地智能分析、分支推演和训练
 
 ## 主要模块
 
-- `js/config.js`：棋盘尺寸、棋色、模式、方向和延时常量
-- `js/core/rules.js`：边界、连续棋子、胜负判断、胜利线提取
-- `js/ai/evaluator.js`：AI 候选点与棋形评分
-- `js/game/game.js`：对局状态、落子、终局、悔棋、快照与恢复
-- `js/game/history.js`：棋谱坐标、手数标签、指定手数棋盘重建
-- `js/analysis/analyzer.js`：基础棋形节点和终局方向分析
-- `js/storage/storage.js`：未完成棋局和最近 20 局历史记录
-- `js/audio/audio.js`：Web Audio API
-- `js/ui/board.js`：棋盘、坐标、棋子、最后一步和胜利线高亮
-- `js/ui/panel.js`：模式、统计、非阻塞终局卡、历史列表
-- `js/ui/review.js`：复盘控制、棋谱和分析显示
-- `js/main.js`：应用控制器，协调 AI、保存、终局、复盘和 UI
+- `js/core/rules.js`：胜负规则和胜利线
+- `js/ai/evaluator.js`：候选点、棋形评分、难度选择、可解释 AI
+- `js/ai/search.js`：困难模式的一层回应推演
+- `js/game/game.js`：真实对局状态、悔棋、快照和恢复
+- `js/game/history.js`：棋谱坐标与任意手数棋盘重建
+- `js/analysis/analyzer.js`：活三/四连/活四/五连、关键防守和明显漏防
+- `js/analysis/heatmap.js`：局势热力图
+- `js/training/puzzles.js`：从历史关键节点生成训练题
+- `js/training/profile.js`：玩家人机历史统计和棋风摘要
+- `js/storage/storage.js`：当前对局、历史记录和智能分析设置
+- `js/ui/board.js`：棋盘、坐标、热力图、胜利高亮
+- `js/ui/review.js`：时间轴、关键手过滤、棋谱和分析
+- `js/ui/insights.js`：AI 设置、解释、训练、画像和分支状态
+- `js/main.js`：普通对局 / 复盘 / 分支 / 训练四种交互状态的协调器
 
-## 对局数据流
+## 状态隔离
 
-```text
-用户/AI落子
-   ↓
-Game.play()
-   ↓
-Rules.findWinningLine()
-   ↓
-更新 Game 状态
-   ↓
-BoardView + PanelView
-   ↓
-未结束 → Storage.saveCurrent()
-已结束 → Storage.saveFinished()
-```
+真实 `game` 始终保存主对局。
 
-## 复盘数据流
+复盘使用只读 `review.target`；What-if 使用独立 `branchState.game`；训练使用独立的题目棋盘。分支和训练不会改写主对局或原棋谱。
+
+## 本地 AI
 
 ```text
-moves[]
-   ↓
-History.boardAt(index)
-   ↓
-BoardView
-   ↓
-ReviewView（棋谱 / 控制）
-   ↓
-Analyzer（基础棋形分析）
+候选点
+  ↓
+必杀 / 必防检查
+  ↓
+进攻评分 + 防守评分 + 中心加权
+  ↓
+简单：较优候选随机
+普通：最高启发式评分
+困难：估计对手最强回应 + 己方后续价值
 ```
 
-复盘使用独立的展示状态，不修改真实对局数据，因此退出复盘后可以安全返回原棋局。
+所有推理均在浏览器本地完成。
 
-## 构建与测试
+## 测试与构建
 
 `npm test` 使用 Node 内置测试框架。
 
-`npm run build` 按 `index.html` 中的 CSS/JS 顺序生成单文件 `dist/gomoku.html`。
+`npm run build` 根据 `index.html` 的加载顺序生成 `dist/gomoku.html`。
 
-GitHub Actions 会在提交和 Pull Request 时自动执行测试与构建。
+GitHub Actions 在 PR 和 main 更新时执行测试和构建。

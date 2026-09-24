@@ -14,7 +14,7 @@
     }
 
     render(game, options = {}) {
-      const { locked = false, reviewIndex = null, winningLine = game.winningLine } = options;
+      const { locked = false, reviewIndex = null, winningLine = game.winningLine, heatmap = [] } = options;
       const reviewMode = Number.isInteger(reviewIndex);
       const moves = reviewMode ? game.moves.slice(0, reviewIndex) : game.moves;
       const board = reviewMode ? boardAt(game.moves, reviewIndex) : game.board;
@@ -42,6 +42,16 @@
         star.className = 'star';
         setBoardPosition(star, r, c);
         this.element.appendChild(star);
+      }
+
+      for (const point of heatmap) {
+        if (board[point.r]?.[point.c] !== 0) continue;
+        const marker = document.createElement('span');
+        marker.className = `heat-point heat-${point.level}`;
+        marker.title = point.title || '局势分析';
+        marker.setAttribute('aria-hidden', 'true');
+        setBoardPosition(marker, point.r, point.c);
+        this.element.appendChild(marker);
       }
 
       for (let r = 0; r < SIZE; r += 1) {

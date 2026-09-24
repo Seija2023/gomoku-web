@@ -36,6 +36,23 @@
 
     <section class="game-layout">
       <div class="board-column">
+        <div id="branchBar" class="context-bar hidden">
+          <strong id="branchText">分支推演</strong>
+          <button id="branchExitBtn" type="button">返回原局</button>
+        </div>
+
+        <div id="trainingCard" class="training-card hidden">
+          <div>
+            <p class="eyebrow">TRAINING</p>
+            <strong id="trainingPrompt">找到关键下一手</strong>
+            <p id="trainingFeedback" class="training-feedback"></p>
+          </div>
+          <div class="training-actions">
+            <button id="trainingNextBtn" type="button" disabled>下一题</button>
+            <button id="trainingExitBtn" type="button">退出训练</button>
+          </div>
+        </div>
+
         <div class="board-wrap">
           <div id="board" class="board" role="grid" aria-label="15乘15五子棋棋盘"></div>
         </div>
@@ -62,6 +79,7 @@
             </div>
             <button id="reviewExitBtn" type="button">退出复盘</button>
           </div>
+
           <div class="review-toolbar">
             <strong id="reviewPosition">第 0 / 0 手</strong>
             <div class="review-buttons">
@@ -70,8 +88,16 @@
               <button id="reviewPlayBtn" type="button">自动播放</button>
               <button id="reviewNextBtn" type="button">下一步</button>
               <button id="reviewEndBtn" type="button">终局</button>
+              <button id="reviewKeyOnlyBtn" type="button">只看关键手</button>
+              <button id="reviewBranchBtn" class="primary" type="button">从此变招</button>
             </div>
           </div>
+
+          <div class="review-timeline">
+            <input id="reviewTimeline" type="range" min="0" max="0" value="0" aria-label="复盘时间轴" />
+            <div id="reviewKeyMarkers" class="key-markers" aria-hidden="false"></div>
+          </div>
+
           <div class="review-grid">
             <div>
               <h3>对局分析</h3>
@@ -96,6 +122,27 @@
         </div>
 
         <div class="panel-section">
+          <h2>智能 AI</h2>
+          <label class="control-label" for="difficultySelect">难度</label>
+          <select id="difficultySelect" class="control-select">
+            <option value="easy">简单</option>
+            <option value="normal">普通</option>
+            <option value="hard">困难</option>
+          </select>
+
+          <div class="smart-actions">
+            <button id="heatmapToggle" type="button" aria-pressed="false">热力图：关</button>
+            <select id="heatmapMode" class="control-select" aria-label="热力图模式">
+              <option value="combined">综合局势</option>
+              <option value="black">黑棋进攻</option>
+              <option value="white">白棋进攻</option>
+            </select>
+          </div>
+
+          <div id="aiExplain" class="ai-explain">AI落子后，这里会显示它为什么选择该位置。</div>
+        </div>
+
+        <div class="panel-section">
           <h2>对局信息</h2>
           <div class="stats">
             <div><span id="blackLabel">黑棋</span><strong id="blackCount">0</strong></div>
@@ -111,6 +158,14 @@
             <button id="soundBtn" type="button" aria-pressed="true">音效：开</button>
             <button id="restartBtn" class="primary" type="button">重新开始</button>
           </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>训练中心</h2>
+          <button id="trainingBtn" class="wide-button" type="button">
+            我的残局训练 <span class="count-badge" id="trainingCount">0</span>
+          </button>
+          <div id="profileContent" class="profile-content"></div>
         </div>
 
         <div class="panel-section">
@@ -131,14 +186,19 @@
   <script src="js/config.js" defer></script>
   <script src="js/core/rules.js" defer></script>
   <script src="js/ai/evaluator.js" defer></script>
+  <script src="js/ai/search.js" defer></script>
   <script src="js/game/game.js" defer></script>
   <script src="js/game/history.js" defer></script>
   <script src="js/storage/storage.js" defer></script>
   <script src="js/analysis/analyzer.js" defer></script>
+  <script src="js/analysis/heatmap.js" defer></script>
+  <script src="js/training/puzzles.js" defer></script>
+  <script src="js/training/profile.js" defer></script>
   <script src="js/audio/audio.js" defer></script>
   <script src="js/ui/board.js" defer></script>
   <script src="js/ui/panel.js" defer></script>
   <script src="js/ui/review.js" defer></script>
+  <script src="js/ui/insights.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>
