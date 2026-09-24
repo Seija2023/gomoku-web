@@ -154,7 +154,7 @@
       if (!inspection.ok || inspection.terminal) return null;
       if (!G.Rules.isInside(board, userMove.r, userMove.c) || board[userMove.r][userMove.c] !== 0) return null;
 
-      const totalBudget = searchOptions.timeBudgetMs || G.Config.AI_BUDGET_MS.analysis;
+      const totalBudget = searchOptions.timeBudgetMs || Math.min(420, G.Config.AI_BUDGET_MS.analysis);
       const maxDepth = searchOptions.maxDepth || G.Config.AI_MAX_DEPTH.analysis;
       const recommendation = this.analysis.chooseMove(
         board,
