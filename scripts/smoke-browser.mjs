@@ -214,8 +214,15 @@ try {
   await cdp.waitFor("Gomoku.App.getPerformanceStats().aiClient.mode === 'worker'", 5000);
 
   const initial = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { cells: document.querySelectorAll('.cell').length, initializations: perf.board.initializations, workerMode: perf.aiClient.mode, embeddedWorker: Boolean(window.GOMOKU_WORKER_SOURCE) }; })()");
+  const workspaceInitial = await cdp.evaluate("(() => ({ workspace: document.body.dataset.workspace, activeTab: document.querySelector('.workspace-tab.active')?.dataset.workspaceTarget, visibleSections: [...document.querySelectorAll('.workspace-section.workspace-visible')].map(item => item.dataset.workspaces) }))()");
 
-  await cdp.evaluate("Gomoku.App.startPositionEditor()");
+  await cdp.evaluate("document.querySelector('[data-workspace-target=\"analysis\"]').click()");
+  await cdp.waitFor("document.body.dataset.workspace === 'analysis'");
+  const workspaceAnalysis = await cdp.evaluate("(() => ({ visibleAnalysis: document.querySelector('[data-workspaces=\"analysis\"]')?.classList.contains('workspace-visible'), visibleGame: document.querySelector('[data-workspaces=\"game\"]')?.classList.contains('workspace-visible') }))()");
+
+  await cdp.evaluate("document.querySelector('[data-workspace-target=\"lab\"]').click()");
+  await cdp.waitFor("document.body.dataset.workspace === 'lab'");
+  await cdp.evaluate("document.getElementById('positionEditorBtn').click()");
   await cdp.waitFor("!document.getElementById('positionEditorCard').classList.contains('hidden')");
   await cdp.evaluate("document.querySelector('[data-row=\"7\"][data-col=\"7\"]').click()");
   await cdp.evaluate("document.getElementById('editorToolWhite').click(); document.querySelector('[data-row=\"7\"][data-col=\"8\"]').click()");
@@ -228,6 +235,8 @@ try {
   await cdp.waitFor("Gomoku.App.getGame().customPosition === true");
   const customGame = await cdp.evaluate("(() => ({ black: Gomoku.App.getGame().board[7][7], white: Gomoku.App.getGame().board[7][8], moves: Gomoku.App.getGame().moves.length, editorHidden: document.getElementById('positionEditorCard').classList.contains('hidden') }))()");
   await cdp.evaluate("Gomoku.App.restart()");
+  await cdp.waitFor("document.body.dataset.workspace === 'lab'");
+  const workspacePersistAfterSpecial = await cdp.evaluate("(() => ({ workspace: document.body.dataset.workspace, selected: Gomoku.App.getWorkspace().selected }))()");
 
   await cdp.evaluate("document.querySelector('[data-row=\"7\"][data-col=\"7\"]').click()");
   await cdp.waitFor('Gomoku.App.getGame().moves.length === 1');
@@ -238,13 +247,18 @@ try {
   const aiRuntime = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { moves: Gomoku.App.getGame().moves.length, mode: perf.aiClient.mode, progress: perf.aiClient.latestProgress, searchStatus: document.getElementById('aiSearchStatus').textContent }; })()");
   const aiMoves = aiRuntime.moves;
 
+  await cdp.evaluate("document.querySelector('[data-workspace-target=\"analysis\"]').click()");
+  await cdp.waitFor("document.body.dataset.workspace === 'analysis' && document.querySelector('[data-workspaces=\"analysis\"]').classList.contains('workspace-visible')");
   await cdp.waitFor("document.querySelectorAll('.candidate-ghost-btn').length > 0");
+  const analysisLayout = await cdp.evaluate("(() => { const cards = [...document.querySelectorAll('#candidateCompare .candidate-card')]; const inspector = document.getElementById('searchInspector'); const panel = document.querySelector('.workspace-panel'); return { cardWidth: cards[0]?.getBoundingClientRect().width || 0, cardCount: cards.length, inspectorOpen: inspector.open, panelNoOverflow: panel.scrollWidth <= panel.clientWidth + 2 }; })()");
   await cdp.evaluate("document.querySelector('.candidate-ghost-btn').click()");
   const ghost2 = await cdp.evaluate("(() => { const perf = Gomoku.App.getPerformanceStats(); return { pinned: perf.board.ghostPinned, markers: document.querySelectorAll('.ghost-layer.pinned .ghost-piece').length, buttonActive: document.querySelector('.candidate-ghost-btn.active') !== null }; })()");
 
-  await cdp.evaluate("Gomoku.App.startVariationCurrent()");
+  await cdp.evaluate("document.querySelector('[data-workspace-target=\"lab\"]').click()");
+  await cdp.waitFor("document.body.dataset.workspace === 'lab'");
+  await cdp.evaluate("document.getElementById('variationStartBtn').click()");
   await cdp.waitFor("!document.getElementById('variationCard').classList.contains('hidden')");
-  const variationStart = await cdp.evaluate("(() => ({ nodes: document.querySelectorAll('.variation-node').length, ghostPinned: Gomoku.App.getPerformanceStats().board.ghostPinned, cardVisible: !document.getElementById('variationCard').classList.contains('hidden') }))()");
+  const variationStart = await cdp.evaluate("(() => ({ nodes: document.querySelectorAll('.variation-node').length, ghostPinned: Gomoku.App.getPerformanceStats().board.ghostPinned, cardVisible: !document.getElementById('variationCard').classList.contains('hidden'), workspace: document.body.dataset.workspace, disabledTabs: [...document.querySelectorAll('.workspace-tab')].filter(item => item.disabled).length }))()");
 
   await cdp.evaluate("(() => { const cell = [...document.querySelectorAll('.cell')].find(item => !item.querySelector('.piece') && !item.disabled); if (!cell) throw new Error('No empty variation cell'); cell.click(); })()");
   await cdp.waitFor("document.querySelectorAll('.variation-node').length >= 2");
@@ -266,6 +280,8 @@ try {
   await cdp.waitFor("!document.getElementById('variationCard').classList.contains('hidden') && document.getElementById('variationTreeList').textContent.includes('Smoke 分支')");
   const resumedVariation = await cdp.evaluate("(() => ({ restored: document.getElementById('variationTreeList').textContent.includes('Smoke 分支'), nodes: document.querySelectorAll('.variation-node').length }))()");
   await cdp.evaluate("Gomoku.App.exitVariation()");
+  await cdp.evaluate("document.querySelector('[data-workspace-target=\"training\"]').click()");
+  await cdp.waitFor("document.body.dataset.workspace === 'training'");
 
   await cdp.evaluate(`(() => {
     Gomoku.Storage.clearCurrent();
@@ -301,8 +317,10 @@ try {
   })()`);
   await new Promise(resolve => setTimeout(resolve, 250));
   await cdp.waitFor('window.Gomoku?.App && document.querySelectorAll(".cell").length === 225', 7000);
+  await cdp.waitFor("document.body.dataset.workspace === 'training'");
   await cdp.waitFor("document.querySelectorAll('.mistake-book-card').length >= 2 && Number(document.getElementById('mistakeTrainingCount').textContent) >= 2", 7000);
 
+  const workspaceReload = await cdp.evaluate("(() => ({ workspace: document.body.dataset.workspace, selected: Gomoku.App.getWorkspace().selected, activeTab: document.querySelector('.workspace-tab.active')?.dataset.workspaceTarget }))()");
   const adaptiveDashboard = await cdp.evaluate("(() => ({ mistakes: document.querySelectorAll('.mistake-book-card').length, weaknessRows: document.querySelectorAll('.weakness-row').length, mistakeCount: Number(document.getElementById('mistakeTrainingCount').textContent), profile: document.getElementById('profileContent').textContent }))()");
 
   const adaptivePuzzle = await cdp.evaluate("(() => { const button = document.querySelector('[data-mistake-puzzle]'); const id = button.dataset.mistakePuzzle; const records = Gomoku.Storage.listHistory(); const mistakes = Gomoku.MistakeMiner.mine(records); const puzzles = Gomoku.Puzzles.generate(records, Gomoku.Config.MAX_TRAINING_PUZZLES, mistakes); const puzzle = puzzles.find(item => item.id === id); if (!puzzle) throw new Error('Adaptive smoke puzzle not found'); button.click(); return { id, expected: puzzle.expected, category: puzzle.category, sourceKind: puzzle.sourceKind }; })()");
@@ -319,7 +337,7 @@ try {
 
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await new Promise(resolve => setTimeout(resolve, 120));
-  const mobileTraining = await cdp.evaluate("(() => { const card = document.getElementById('trainingCard'); const variationButton = document.getElementById('trainingVariationBtn'); return { viewport: innerWidth, noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2, columns: getComputedStyle(card).gridTemplateColumns.split(' ').length, variationButtonHeight: variationButton.getBoundingClientRect().height }; })()");
+  const mobileTraining = await cdp.evaluate("(() => { const card = document.getElementById('trainingCard'); const variationButton = document.getElementById('trainingVariationBtn'); const nav = document.getElementById('workspaceNav'); const tab = document.querySelector('.workspace-tab.active'); return { viewport: innerWidth, noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2, columns: getComputedStyle(card).gridTemplateColumns.split(' ').length, variationButtonHeight: variationButton.getBoundingClientRect().height, navPosition: getComputedStyle(nav).position, navBottom: nav.getBoundingClientRect().bottom <= innerHeight && nav.getBoundingClientRect().bottom >= innerHeight - 30, activeTabHeight: tab.getBoundingClientRect().height }; })()");
   await cdp.send('Emulation.clearDeviceMetricsOverride');
 
   await cdp.evaluate("document.getElementById('trainingNextBtn').click()");
@@ -327,6 +345,8 @@ try {
   const adaptiveSession = await cdp.evaluate("(() => ({ donePrompt: document.getElementById('trainingPrompt').textContent, summary: document.getElementById('trainingFeedback').textContent, nextLabel: document.getElementById('trainingNextBtn').textContent }))()");
   await cdp.evaluate("document.getElementById('trainingNextBtn').click()");
   await cdp.waitFor("document.getElementById('trainingCard').classList.contains('hidden')");
+  await cdp.evaluate("document.querySelector('[data-workspace-target=\"game\"]').click()");
+  await cdp.waitFor("document.body.dataset.workspace === 'game'");
 
   await cdp.evaluate("(() => { Gomoku.App.setMode('pvp'); const sequence = [[7,3],[0,0],[7,4],[0,2],[7,5],[0,4],[7,6],[0,6],[7,7]]; for (const pair of sequence) { const r = pair[0], c = pair[1]; document.querySelector('[data-row=\"' + r + '\"][data-col=\"' + c + '\"]').click(); } })()");
   await cdp.waitFor('Gomoku.App.getGame().gameOver === true');
@@ -357,9 +377,14 @@ try {
   const checks = {
     initialCells: initial.cells === 225,
     workerBackend: initial.workerMode === 'worker' && initial.embeddedWorker === false,
+    workspaceDefaultGame: workspaceInitial.workspace === 'game' && workspaceInitial.activeTab === 'game' && workspaceInitial.visibleSections.every(item => item.includes('game')),
+    workspaceAnalysisFocused: workspaceAnalysis.visibleAnalysis && !workspaceAnalysis.visibleGame,
+    workspaceRestoresAfterSpecial: workspacePersistAfterSpecial.workspace === 'lab' && workspacePersistAfterSpecial.selected === 'lab',
+    workspacePersistsReload: workspaceReload.workspace === 'training' && workspaceReload.selected === 'training' && workspaceReload.activeTab === 'training',
+    analysisReadableCards: analysisLayout.cardCount > 0 && analysisLayout.cardWidth >= 230 && !analysisLayout.inspectorOpen && analysisLayout.panelNoOverflow,
     workerSearchTelemetry: aiRuntime.mode === 'worker' && aiRuntime.progress?.nodes > 0 && aiRuntime.progress?.depth >= 1 && aiRuntime.searchStatus.includes('Worker AI'),
     ghostLine2Pinned: ghost2.pinned && ghost2.markers >= 2 && ghost2.buttonActive,
-    variationOpened: variationStart.cardVisible && variationStart.nodes === 1 && variationStart.ghostPinned === false,
+    variationOpened: variationStart.cardVisible && variationStart.nodes === 1 && variationStart.ghostPinned === false && variationStart.workspace === 'lab' && variationStart.disabledTabs === 3,
     variationManualBranch: manualVariation.nodes >= 2 && manualVariation.active.length > 0,
     variationAiExpanded: expandedVariation.nodes >= 3 && expandedVariation.children >= 2,
     searchInspectorRendered: expandedVariation.inspectorVisible && expandedVariation.depthRows > 0 && expandedVariation.stability.includes('稳定度'),
@@ -370,7 +395,7 @@ try {
     adaptiveBestAnswer: adaptivePuzzle.sourceKind === 'mistake' && adaptiveAnswer.grade === 'best' && adaptiveAnswer.variationEnabled && adaptiveAnswer.meta.includes('个人错题'),
     trainingVariationRoundTrip: trainingVariation.active && trainingVariation.label.includes('训练'),
     adaptiveFiniteSession: adaptiveSession.donePrompt.includes('完成') && adaptiveSession.summary.includes('最佳') && adaptiveSession.nextLabel.includes('返回棋局'),
-    mobileAdaptiveLayout: mobileTraining.viewport === 390 && mobileTraining.noHorizontalOverflow && mobileTraining.columns === 1 && mobileTraining.variationButtonHeight >= 44,
+    mobileAdaptiveLayout: mobileTraining.viewport === 390 && mobileTraining.noHorizontalOverflow && mobileTraining.columns === 1 && mobileTraining.variationButtonHeight >= 44 && mobileTraining.navPosition === 'fixed' && mobileTraining.navBottom && mobileTraining.activeTabHeight >= 44,
     standaloneBlobWorker: standaloneState.embedded && standaloneState.mode === 'worker',
     standaloneAiResponded: standaloneState.moves >= 2 && standaloneState.progress?.nodes > 0,
     positionEditorPlaced: editorState.pieces === 2 && editorState.cardVisible,
@@ -389,7 +414,7 @@ try {
   };
 
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
-  console.log(JSON.stringify({ checks, initial, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, adaptiveDashboard, adaptivePuzzle, adaptiveAnswer, trainingVariation, mobileTraining, adaptiveSession, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
+  console.log(JSON.stringify({ checks, initial, workspaceInitial, workspaceAnalysis, workspacePersistAfterSpecial, workspaceReload, analysisLayout, aiRuntime, ghost2, variationStart, manualVariation, expandedVariation, namedVariation, resumedVariation, adaptiveDashboard, adaptivePuzzle, adaptiveAnswer, trainingVariation, mobileTraining, adaptiveSession, standaloneState, editorState, customGame, replayBefore, replayAfter, exceptions: [...cdp.exceptions, ...standaloneCdp.exceptions] }, null, 2));
 
   if (failed.length) throw new Error('Smoke checks failed: ' + failed.join(', '));
 } finally {

@@ -5,6 +5,7 @@
     }
 
     blocked() {
+      if (this.workspace) return !this.workspace.canEnterFromGame();
       return Boolean(
         this.reviewController.state.active
         || this.branchController.state.active

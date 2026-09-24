@@ -4,9 +4,10 @@
       Object.assign(this, options);
     }
 
-    blocked(includeReview = true) {
+    blocked() {
+      if (this.workspace) return !this.workspace.canEnterFromGame();
       return Boolean(
-        (includeReview && this.reviewController.state.active)
+        this.reviewController.state.active
         || this.branchController.state.active
         || this.trainingController.state.active
         || this.positionEditorController.state.active
@@ -50,7 +51,7 @@
     }
 
     startCurrent() {
-      if (this.blocked(true)) return false;
+      if (this.blocked()) return false;
       this.gameController.clearTimers();
       this.panel.hideResult();
       this.boardView.clearGhost();
@@ -60,7 +61,7 @@
     }
 
     resumeSaved() {
-      if (this.blocked(true)) return false;
+      if (this.blocked()) return false;
       this.gameController.clearTimers();
       this.panel.hideResult();
       this.boardView.clearGhost();

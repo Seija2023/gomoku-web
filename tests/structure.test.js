@@ -6,10 +6,14 @@ const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'utf8');
 const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
+const responsiveCss = await readFile(new URL('../css/responsive.css', import.meta.url), 'utf8');
+const componentsCss = await readFile(new URL('../css/components.css', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.7.0 Adaptive Training 与 Variation Lab 模块', () => {
+test('入口文件加载 v2.8.0 Workspace & UX 2.0 模块', () => {
   for (const path of [
     'js/app/render-flags.js',
+    'js/app/workspace-manager.js',
+    'js/app/session-workflow.js',
     'js/game/position.js',
     'js/game/editable-position.js',
     'js/lab/variation-tree.js',
@@ -30,6 +34,7 @@ test('入口文件加载 v2.7.0 Adaptive Training 与 Variation Lab 模块', () 
     'js/training/training-workflow.js',
     'js/share/codec.js',
     'js/ui/insights.js',
+    'js/ui/workspace.js',
     'js/ui/position-editor.js',
     'js/ui/variation-tree.js',
     'js/controllers/review-controller.js',
@@ -39,6 +44,8 @@ test('入口文件加载 v2.7.0 Adaptive Training 与 Variation Lab 模块', () 
     'js/controllers/branch-controller.js',
     'js/controllers/position-editor-controller.js',
     'js/controllers/variation-controller.js',
+    'js/app/render-coordinator.js',
+    'js/app/boot-guard.js',
     'js/main.js',
   ]) assert.match(index, new RegExp(path.replace(/[./]/g, '\\$&')));
 });
@@ -68,7 +75,8 @@ test('页面保留 v2.3 核心 PC 与手机控件', () => {
     'variationStartBtn','variationResumeBtn','variationCard','variationTreeList',
     'variationChildren','variationExpandBtn','variationFavoriteBtn',
     'mistakeTrainingBtn','mistakeTrainingCount','trainingWeakness','mistakeBook',
-    'trainingMeta','trainingDetail','trainingVariationBtn'
+    'trainingMeta','trainingDetail','trainingVariationBtn',
+    'workspaceNav','workspaceContext'
   ]) assert.match(index, new RegExp(`id="${id}"`));
 });
 
@@ -99,10 +107,10 @@ test('主控制器支持按区域刷新而不是只能全量 refresh', async () 
   assert.match(source, /refreshTrainingDerived/);
 });
 
-test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => {
+test('main 入口由 Workspace / Session / Render 协调层承担应用编排', async () => {
   const source = await readFile(new URL('../js/main.js', import.meta.url), 'utf8');
   const lines = source.split('\n').length;
-  assert.ok(lines < 800, `main.js should stay below 800 lines after v2.6 integration, got ${lines}`);
+  assert.ok(lines < 480, `main.js should stay below 480 lines after v2.8 consolidation, got ${lines}`);
   assert.match(source, /new G\.Controllers\.GameController/);
   assert.match(source, /new G\.Controllers\.ReviewController/);
   assert.match(source, /new G\.Controllers\.BranchController/);
@@ -113,6 +121,10 @@ test('main 入口明显瘦身并由 Controller 承担功能逻辑', async () => 
   assert.match(source, /new G\.Controllers\.VariationController/);
   assert.match(source, /new G\.Lab\.VariationWorkflow/);
   assert.match(source, /new G\.Training\.Workflow/);
+  assert.match(source, /new G\.AppCore\.WorkspaceManager/);
+  assert.match(source, /new G\.AppCore\.RenderCoordinator/);
+  assert.match(source, /new G\.AppCore\.SessionWorkflow/);
+  assert.doesNotMatch(source, /state\.active/);
 });
 
 test('CI 包含短浏览器 Smoke Test', async () => {
@@ -171,4 +183,41 @@ test('Adaptive Training 使用独立错误挖掘、分类和自适应计划模�
   assert.match(puzzles, /grade: 'good'/);
   assert.match(workflow, /startMistakes/);
   assert.match(workflow, /openVariation/);
+});
+
+
+test('四工作区信息架构存在且高级信息默认渐进展开', () => {
+  for (const workspace of ['game', 'analysis', 'training', 'lab']) {
+    assert.match(index, new RegExp(`data-workspace-target="${workspace}"`));
+    assert.match(index, new RegExp(`data-workspaces="[^"]*${workspace}[^"]*"`));
+  }
+  assert.match(index, /<details id="searchInspector"/);
+  assert.match(index, /近期弱点与个人错题/);
+  assert.match(index, /<summary><span>历史对局/);
+  assert.match(componentsCss, /\.workspace-section\.workspace-visible/);
+});
+
+test('移动端使用固定底部工作区导航并保留 44px 触控目标', () => {
+  assert.match(responsiveCss, /\.workspace-nav\s*\{[\s\S]*position:\s*fixed/);
+  assert.match(responsiveCss, /\.workspace-tab\s*\{[\s\S]*min-height:\s*52px/);
+  assert.match(responsiveCss, /padding-bottom:\s*calc\(72px/);
+});
+
+test('RenderCoordinator 集中处理显示局面、交互状态和区域渲染', async () => {
+  const source = await readFile(new URL('../js/app/render-coordinator.js', import.meta.url), 'utf8');
+  assert.match(source, /displayGame\(\)/);
+  assert.match(source, /interactionState\(shown\)/);
+  assert.match(source, /previewAt\(r, c\)/);
+  assert.match(source, /refresh\(mask = RenderFlags\.ALL\)/);
+  assert.match(source, /workspace\.activity\(\)/);
+});
+
+
+test('Boot Guard 会在模块顺序损坏时提供明确依赖诊断', async () => {
+  const source = await readFile(new URL('../js/app/boot-guard.js', import.meta.url), 'utf8');
+  assert.match(source, /Gomoku bootstrap dependency missing/);
+  assert.match(source, /AppCore\.WorkspaceManager/);
+  assert.match(source, /AppCore\.RenderCoordinator/);
+  assert.match(source, /UI\.WorkspaceView/);
+  assert.match(index, /js\/app\/boot-guard\.js/);
 });
