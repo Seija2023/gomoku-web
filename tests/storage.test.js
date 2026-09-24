@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 
 const data = new Map();
 globalThis.window = globalThis;
+data.set('gomoku-schema-version', JSON.stringify(4));
+data.set('gomoku-sound', 'off');
 globalThis.localStorage = {
   getItem: key => data.has(key) ? data.get(key) : null,
   setItem: (key, value) => data.set(key, String(value)),
@@ -14,9 +16,12 @@ await import('../js/storage/storage.js');
 
 const { Storage, StorageMigrations, Config } = globalThis.Gomoku;
 
-test('存储 schema 会迁移到当前版本', () => {
+test('存储 schema 会迁移到当前版本并吸收旧音效设置', () => {
+  assert.equal(Storage.SCHEMA_VERSION, 5);
   assert.equal(Storage.SCHEMA_VERSION, StorageMigrations.CURRENT_SCHEMA);
   assert.equal(JSON.parse(data.get(StorageMigrations.SCHEMA_KEY)), StorageMigrations.CURRENT_SCHEMA);
+  assert.equal(data.has('gomoku-sound'), false);
+  assert.equal(Storage.loadSettings().sound, false);
 });
 
 test('未完成棋局可以保存与读取', () => {
@@ -46,12 +51,14 @@ test('v2.3 设置保持兼容并可持久化', () => {
     heatmap: true,
     heatmapMode: 'black',
     ghost: false,
+    sound: true,
   };
   assert.equal(Storage.saveSettings(settings), true);
   const loaded = Storage.loadSettings();
   assert.equal(loaded.difficulty, settings.difficulty);
   assert.equal(loaded.persona, settings.persona);
   assert.equal(loaded.ghost, false);
+  assert.equal(loaded.sound, true);
 });
 
 test('训练间隔复习进度可以持久化', () => {
