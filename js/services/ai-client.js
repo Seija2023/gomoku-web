@@ -2,8 +2,9 @@
   class MainThreadAIClient {
     constructor(analysisService, requestGate = new G.Services.RequestGate()) {
       this.analysis = analysisService;
+      this.counterfactual = new G.Services.CounterfactualService(analysisService);
       this.gate = requestGate;
-      this.metrics = { chooseRequests: 0, staleResults: 0, cancellations: 0 };
+      this.metrics = { chooseRequests: 0, compareRequests: 0, staleResults: 0, cancellations: 0 };
     }
 
     async chooseMove(context, channel = 'ai') {
@@ -25,6 +26,22 @@
         context.rng || Math.random,
       );
 
+      const stale = !this.gate.isCurrent(channel, version);
+      if (stale) this.metrics.staleResults += 1;
+      return { stale, result: stale ? null : result, version };
+    }
+
+    async compareMove(context, channel = 'counterfactual') {
+      const version = this.gate.next(channel);
+      this.metrics.compareRequests += 1;
+
+      await Promise.resolve();
+      if (!this.gate.isCurrent(channel, version)) {
+        this.metrics.staleResults += 1;
+        return { stale: true, result: null, version };
+      }
+
+      const result = this.counterfactual.compare(context);
       const stale = !this.gate.isCurrent(channel, version);
       if (stale) this.metrics.staleResults += 1;
       return { stale, result: stale ? null : result, version };
@@ -74,6 +91,7 @@
         requests: {
           ai: this.gate.current('ai'),
           branch: this.gate.current('branch'),
+          counterfactual: this.gate.current('counterfactual'),
         },
       };
     }
