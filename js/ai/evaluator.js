@@ -1,26 +1,32 @@
 (function (G) {
-  const { BLACK, WHITE, DIRECTIONS, AI_DIFFICULTIES } = G.Config;
+  const { BLACK, WHITE, DIRECTIONS, AI_DIFFICULTIES, AI_PERSONAS } = G.Config;
   const { isInside, hasWon } = G.Rules;
+
+  const PERSONA_WEIGHTS = Object.freeze({
+    [AI_PERSONAS.BALANCED]: Object.freeze({ attack: 1.00, defense: 1.12, center: 3.0, label: '均衡型' }),
+    [AI_PERSONAS.ATTACK]: Object.freeze({ attack: 1.28, defense: 0.92, center: 3.2, label: '进攻型' }),
+    [AI_PERSONAS.DEFENSE]: Object.freeze({ attack: 0.88, defense: 1.48, center: 2.7, label: '防守型' }),
+    [AI_PERSONAS.RISKY]: Object.freeze({ attack: 1.46, defense: 0.76, center: 2.0, label: '冒险型' }),
+  });
 
   function opponentOf(player) {
     return player === BLACK ? WHITE : BLACK;
+  }
+
+  function personaWeights(persona) {
+    return PERSONA_WEIGHTS[persona] || PERSONA_WEIGHTS[AI_PERSONAS.BALANCED];
   }
 
   function countLine(board, r, c, dr, dc, player) {
     let count = 0;
     let nr = r + dr;
     let nc = c + dc;
-
     while (isInside(board, nr, nc) && board[nr][nc] === player) {
       count += 1;
       nr += dr;
       nc += dc;
     }
-
-    return {
-      count,
-      open: isInside(board, nr, nc) && board[nr][nc] === 0,
-    };
+    return { count, open: isInside(board, nr, nc) && board[nr][nc] === 0 };
   }
 
   function patternScore(length, openEnds) {
@@ -39,7 +45,6 @@
     if (!isInside(board, r, c) || board[r][c] !== 0) return -Infinity;
     board[r][c] = player;
     let score = 0;
-
     try {
       for (const [dr, dc] of DIRECTIONS) {
         const forward = countLine(board, r, c, dr, dc, player);
@@ -70,7 +75,6 @@
       const center = Math.floor(size / 2);
       return [{ r: center, c: center }];
     }
-
     const set = new Set();
     for (const move of moves) {
       for (let dr = -radius; dr <= radius; dr += 1) {
@@ -81,7 +85,6 @@
         }
       }
     }
-
     return [...set].map(key => {
       const [r, c] = key.split(',').map(Number);
       return { r, c };
@@ -96,7 +99,7 @@
     return '一般';
   }
 
-  function explainCandidate(board, move, player, attack, defense) {
+  function explainCandidate(board, move, player, attack, defense, persona) {
     const opponent = opponentOf(player);
     let reason = '兼顾进攻与防守，并优先选择更有连接潜力的位置';
     if (isWinningMove(board, move.r, move.c, player)) reason = '完成自己的五连，直接结束对局';
@@ -108,24 +111,36 @@
     else if (attack >= 32_000) reason = '形成活三，继续扩大进攻空间';
     else if (defense >= 32_000) reason = '限制对手形成活三并兼顾己方发展';
 
+    const weights = personaWeights(persona);
     return {
       reason,
       attackLevel: grade(attack),
       defenseLevel: grade(defense),
+      personaLabel: weights.label,
     };
   }
 
-  function rankMoves(board, moves, player = WHITE) {
+  function rankMoves(board, moves, player = WHITE, persona = AI_PERSONAS.BALANCED) {
     const opponent = opponentOf(player);
     const center = Math.floor(board.length / 2);
+    const weights = personaWeights(persona);
+
     return getCandidateMoves(board, moves).map(move => {
       const attack = evaluateMove(board, move.r, move.c, player);
       const defense = evaluateMove(board, move.r, move.c, opponent);
       const centerDistance = Math.abs(move.r - center) + Math.abs(move.c - center);
-      const centerBonus = Math.max(0, board.length - 1 - centerDistance) * 3;
-      const score = attack + defense * 1.12 + centerBonus;
-      const explanation = explainCandidate(board, move, player, attack, defense);
-      return { ...move, attack, defense, centerBonus, score, ...explanation };
+      const centerBonus = Math.max(0, board.length - 1 - centerDistance) * weights.center;
+      const score = attack * weights.attack + defense * weights.defense + centerBonus;
+      const explanation = explainCandidate(board, move, player, attack, defense, persona);
+      return {
+        ...move,
+        attack,
+        defense,
+        centerBonus,
+        score,
+        persona,
+        ...explanation,
+      };
     }).sort((a, b) => b.score - a.score);
   }
 
@@ -135,8 +150,30 @@
     return pool[index];
   }
 
-  function chooseMoveDetailed(board, moves, difficulty = AI_DIFFICULTIES.NORMAL, player = WHITE, rng = Math.random) {
-    const ranked = rankMoves(board, moves, player);
+  function compareCandidates(board, moves, player = WHITE, persona = AI_PERSONAS.BALANCED, limit = 3) {
+    return rankMoves(board, moves, player, persona).slice(0, limit).map((item, index) => ({
+      rank: index + 1,
+      r: item.r,
+      c: item.c,
+      score: Math.round(item.score),
+      attack: item.attack,
+      defense: item.defense,
+      attackLevel: item.attackLevel,
+      defenseLevel: item.defenseLevel,
+      reason: item.reason,
+      personaLabel: item.personaLabel,
+    }));
+  }
+
+  function chooseMoveDetailed(
+    board,
+    moves,
+    difficulty = AI_DIFFICULTIES.NORMAL,
+    player = WHITE,
+    persona = AI_PERSONAS.BALANCED,
+    rng = Math.random
+  ) {
+    const ranked = rankMoves(board, moves, player, persona);
     if (!ranked.length) return { move: null, candidates: [], explanation: null };
 
     const opponent = opponentOf(player);
@@ -146,9 +183,11 @@
     let selected;
     if (winning) selected = winning;
     else if (mustBlock) selected = mustBlock;
-    else if (difficulty === AI_DIFFICULTIES.EASY) selected = chooseFromPool(ranked.slice(0, Math.min(6, ranked.length)), rng);
-    else if (difficulty === AI_DIFFICULTIES.HARD && G.AISearch?.chooseHardMove) selected = G.AISearch.chooseHardMove(board, moves, player, ranked) || ranked[0];
-    else {
+    else if (difficulty === AI_DIFFICULTIES.EASY) {
+      selected = chooseFromPool(ranked.slice(0, Math.min(6, ranked.length)), rng);
+    } else if (difficulty === AI_DIFFICULTIES.HARD && G.AISearch?.chooseHardMove) {
+      selected = G.AISearch.chooseHardMove(board, moves, player, ranked, persona) || ranked[0];
+    } else {
       const best = ranked[0].score;
       selected = chooseFromPool(ranked.filter(item => item.score === best), rng) || ranked[0];
     }
@@ -158,6 +197,8 @@
       r: item.r,
       c: item.c,
       score: Math.round(item.score),
+      attackLevel: item.attackLevel,
+      defenseLevel: item.defenseLevel,
       reason: item.reason,
     }));
 
@@ -170,18 +211,29 @@
         defenseLevel: selected.defenseLevel,
         score: Math.round(selected.score),
         lookahead: selected.lookahead || null,
+        personaLabel: selected.personaLabel,
       } : null,
     };
   }
 
   function chooseMove(board, moves, rng = Math.random) {
-    return chooseMoveDetailed(board, moves, AI_DIFFICULTIES.NORMAL, WHITE, rng).move;
+    return chooseMoveDetailed(
+      board,
+      moves,
+      AI_DIFFICULTIES.NORMAL,
+      WHITE,
+      AI_PERSONAS.BALANCED,
+      rng
+    ).move;
   }
 
   G.AI = Object.freeze({
+    PERSONA_WEIGHTS,
     opponentOf,
+    personaWeights,
     chooseMove,
     chooseMoveDetailed,
+    compareCandidates,
     rankMoves,
     getCandidateMoves,
     isWinningMove,
