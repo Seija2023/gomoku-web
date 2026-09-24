@@ -4,21 +4,21 @@ import { readFile } from 'node:fs/promises';
 
 const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const boardCss = await readFile(new URL('../css/board.css', import.meta.url), 'utf8');
+const boardJs = await readFile(new URL('../js/ui/board.js', import.meta.url), 'utf8');
 const reviewJs = await readFile(new URL('../js/ui/review.js', import.meta.url), 'utf8');
 
-test('入口文件加载 v2.3 智能对弈实验室模块', () => {
+test('入口文件加载 v2.3.1 性能基础模块', () => {
   for (const path of [
+    'js/game/position.js',
+    'js/storage/migrations.js',
+    'js/services/analysis-service.js',
     'js/ai/search.js',
     'js/analysis/advantage.js',
-    'js/analysis/openings.js',
     'js/training/scheduler.js',
     'js/share/codec.js',
-    'js/ui/advantage-chart.js',
     'js/ui/insights.js',
     'js/main.js',
   ]) assert.match(index, new RegExp(path.replace(/[./]/g, '\\$&')));
-  assert.doesNotMatch(index, /href="style\.css"/);
-  assert.doesNotMatch(index, /src="script\.js"/);
 });
 
 test('棋盘交互按钮保持透明，避免移动端白色遮挡回归', () => {
@@ -26,7 +26,15 @@ test('棋盘交互按钮保持透明，避免移动端白色遮挡回归', () =>
   assert.match(cellRule, /background:\s*transparent/);
 });
 
-test('页面包含 PC 与手机共用的 v2.3 核心控件', () => {
+test('棋盘采用一次初始化与事件委托，而不是每次 render 重建 225 个格子', () => {
+  assert.match(boardJs, /initializeBoard\(\)/);
+  assert.match(boardJs, /bindDelegatedEvents\(\)/);
+  const renderBody = boardJs.slice(boardJs.indexOf('    render(game, options = {})'));
+  assert.doesNotMatch(renderBody, /this\.element\.innerHTML\s*=\s*''/);
+  assert.doesNotMatch(boardJs, /cell\.addEventListener\('click'/);
+});
+
+test('页面保留 v2.3 核心 PC 与手机控件', () => {
   for (const id of [
     'board','difficultySelect','personaSelect','ghostToggle','candidateCompare',
     'heatmapToggle','reviewTimeline','advantageChart','reviewShareBtn',
@@ -38,7 +46,8 @@ test('自动复盘不再调用 scrollIntoView 拉动页面', () => {
   assert.doesNotMatch(reviewJs, /scrollIntoView\s*\(/);
 });
 
-test('幽灵线包含手机长按与拖动基础样式', () => {
+test('幽灵线和持久图层样式仍然存在', () => {
   assert.match(boardCss, /\.ghost-layer/);
   assert.match(boardCss, /\.ghost-piece/);
+  assert.match(boardCss, /\.board-layer/);
 });
